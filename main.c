@@ -1,150 +1,96 @@
-#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <ncurses.h>
+#include <time.h>
+#define VROWS     32 // number of rows in video memory
+#define VCOLS     64 // number of columns in video memory
+#define BYTES   4096 // bytes of memory
+#define START 0x0200 // program counter (pc) starts here
+#define VSIZE     16 // number of general purpose register
+#define SSIZE     16 // number of nests in the subroutine stack
+typedef uint64_t u64;
+typedef uint16_t u16;
+typedef uint8_t  u8;
+/* MEMORY LIST */
+static u16 pc = START; // program counter, starts at address START
+static u16 I;          // general purpose pointer
+static u16 s[SSIZE];   // subroutine address stack
+static u16 op; // opcode
+static u8  dt; // delay timer
+static u8  st; // sound timer
+static u8  sp; // stack pointer
+static u8  mem[BYTES];// memory
+static u8  v[VSIZE];  // general purpose registers
+static u8  vmem[VROWS][VCOLS]; // video memory
+/* OPCODE LIST */
+static void _0000(void) { puts("executed _0000"); } // no operation ... a unique operation I added for the sake of opcode map initialization
+static void _00E0(void) { puts("executed _00E0"); } // for(u16 i=0; i<VROWS; i++) for(u16 j=0; j<VCOLS; j++) vmem[i][j]=0x00; } // clears screen   */
+static void _00EE(void) { puts("executed _00EE"); } // pc=s[--sp]; } // returns from subroutine by decrementing stack pointer and assigning pc */
+static void _1NNN(void) { puts("executed _1NNN"); } // u16 nnn=op&0x0FFF; pc=nnn; } // jumps to memory location nnn; equivalent to C's goto */
+static void _2NNN(void) { puts("executed _2NNN"); } // u16 nnn=op&0x0FFF; s[sp++]=pc; pc=nnn; } // saves pc and executes subroutine at nnn */
+static void _3XNN(void) { puts("executed _3XNN"); } // u16 x=(op&0x0F00)>>8, nn=op&0x00FF; if(v[x]==nn) pc+=0x0002; } // compare and skip? */
+static void _4XNN(void) { puts("executed _4XNN"); } // u16 x=(op&0x0F00)>>8, nn=op&0x00FF; if(v[x]!=nn) pc+=0x0002; } // compare and stay? */
+static void _5XY0(void) { puts("executed _5XY0"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; if(v[x]==v[y]) pc+=0x0002; } // compare and skip? */
+static void _6XNN(void) { puts("executed _6XNN"); } // u16 nn=op&0x00FF, x=(op&0x0F00)>>8; v[x]=nn; } // assign nn to a register */
+static void _7XNN(void) { puts("executed _7XNN"); } // u16 nn=op&0x00FF, x=(op&0x0F00)>>8; v[x]+=nn; } // add nn to a register */
+static void _8XY0(void) { puts("executed _8XY0"); } // u16 x=(op&0x0F00)>>8, y=op&0x00F0; v[x]=v[y]; } // assign a register to that of another */
+static void _8XY1(void) { puts("executed _8XY1"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]|=v[y]; } //  or and assign registers */
+static void _8XY2(void) { puts("executed _8XY2"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]&=v[y]; } // and and assign registers */
+static void _8XY3(void) { puts("executed _8XY3"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]^=v[y]; } // xor and assign registers */
+static void _8XY4(void) { puts("executed _8XY4"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF]=v[x]+v[y]>0xFF?0x01:0x00; v[x]+=v[y]; } */
+static void _8XY5(void) { puts("executed _8XY5"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF]=v[x]-v[y]<0x00?0x01:0x00; v[x]-=v[y]; } */
+static void _8XY6(void) { puts("executed _8XY6"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF]=v[y]&0x01; v[x]=v[y]>>1; } // shift right */
+static void _8XY7(void) { puts("executed _8XY7"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF]=v[y]-v[x]<0x00?0x00:0x01; v[x]=v[y]-v[x]; } */
+static void _8XYE(void) { puts("executed _8XYE"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF]=v[y]&0x80; v[x]=v[y]<<1; } // shift left */
+static void _9XY0(void) { puts("executed _9XY0"); } // u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; if(v[x]!=v[y]) pc+=0x0002; } // compare and skip? */
+static void _ANNN(void) { puts("executed _ANNN"); } // u16 nnn=op&0x0FFF; I=nnn; } // assign address nnn to general purpose pointer I */
+static void _BNNN(void) { puts("executed _BNNN"); } // u16 nnn=op&0x0FFF; pc=nnn+v[0x0]; } // assign the additive value of nnn and v[0x0] to pc */
+static void _CXNN(void) { puts("executed _CXNN"); } // u16 x=(op&0x0F00)>>8, nn=op&0x00FF; v[x]=nn&(rand()%256); } // randomize nn, assign v[x] */
+static void _DXYN(void) { puts("executed _DXYN"); }
+//    u16 x=(op&0x0F00)>>8, y=(op&0x00F0)>>4, n=(op&0x000F);
+//    for(u16 i=0; i<n; i++) // draw a sprite to the screen
+//    for(u16 j=0; j<8; j++) { // starting at row=v[y] and col=v[x]
+//        u8 bit = (mem[I+i]>>(7-j))&0x01; // pull one bit from u8 byte
+//        v[0xF] = (vmem[v[y]][v[x]]&&bit)?0x01:0x00; // v[0xF] xor flag check
+//        vmem[v[y]][v[x]] ^= bit; // xor bits to vmem
+//    }
+//}
+static void _EXA1(void) { puts("executed _EXA1"); }
+static void _EX9E(void) { puts("executed _EX9E"); }
+static void _FX07(void) { puts("executed _FX07"); } //u16 x=(op&0x0F00)>>8; v[x]=dt; } // store delay timer
+static void _FX0A(void) { puts("executed _FX0A"); } //}
+static void _FX15(void) { puts("executed _FX15"); } //u16 x=(op&0x0F00)>>8; dt=v[x]; } // assign delay timer
+static void _FX18(void) { puts("executed _FX18"); } //u16 x=(op&0x0F00)>>8; st=v[x]; } // assign sound timer
+static void _FX1E(void) { puts("executed _FX1E"); } //u16 x=(op&0x0F00)>>8; I+=v[x]; } // add to register to general purpose pointer
+static void _FX29(void) { puts("executed _FX29"); } //u16 x=(op&0x0F00)>>8; I=5*v[x]; } // point to character for display display
+static void _FX33(void) { puts("executed _FX33"); } //u16 x=(op&0x0F00)>>8; mem[I]=(v[x]/100)%10, mem[I+1]=(v[x]/10)%10, mem[I+2]=v[x]%10; } // BCD
+static void _FX55(void) { puts("executed _FX55"); } //u16 x=(op&0x0F00)>>8, i; for(i=0; i<x; i++) mem[I+i]=v[i]; I+=i; } // save all general purpose registers
+static void _FX65(void) { puts("executed _FX65"); } //u16 x=(op&0x0F00)>>8, i; for(i=0; i<x; i++) v[i]=mem[I+i]; I+=i; } // get all general purpose registers
+/* MAPPING LIST */
+static void _0___(void);
+static void _8___(void);
+static void _E___(void);
+static void _F___(void);
+static void (*opsa[])(void) = { _00E0, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _00EE, _0000 };
+static void (*opsb[])(void) = { _8XY0, _8XY1, _8XY2, _8XY3, _8XY4, _8XY5, _8XY6, _8XY7, _0000, _0000, _0000, _0000, _0000, _0000, _8XYE, _0000 };
+static void (*opsc[])(void) = { _0000, _EXA1, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _EX9E, _0000 };
+static void (*opsd[])(void) = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07, _0000, _0000, _FX0A, _0000, _0000, _0000, _0000, _0000,
+/* This opcode table looks-  */ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
+/* up which instruction to   */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
+/* execute based on the      */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* chip8's method of opcode  */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* branching - all functions */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* must be void(*a)(void)    */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
+static void (*list[])(void) = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
+static void exec(void (*opcode)(void)) { opcode(); }
+static void _0___(void) { exec(opsa[op&0x000F]); }
+static void _8___(void) { exec(opsb[op&0x000F]); }
+static void _E___(void) { exec(opsc[op&0x000F]); }
+static void _F___(void) { exec(opsd[op&0x00FF]); }
 
-#define VROWS 32 // video memory rows
-#define VCOLS 64 // video memory columns
-
-static uint16_t pc = 0x0200;      // program counter
-static uint16_t op;               // opcode
-static uint16_t I;                // general purpose pointer
-static uint16_t s[16];            // subroutine address stack
-static uint8_t dt;                // delay timer
-static uint8_t st;                // sound timer
-static uint8_t sp;                // stack pointer
-static uint8_t rom[4096];         // read only memory
-static uint8_t v[16];             // general purpose registers
-static uint8_t vram[VROWS][VCOLS];  // video ram
-static unsigned long long cycles; // cycles done since start
-
-static inline void _00EE(void) { pc=s[--sp]; }
-static inline void _1NNN(void) { uint16_t nnn=op&0x0FFF; pc=nnn; }
-static inline void _2NNN(void) { uint16_t nnn=op&0x0FFF; pc=nnn; s[sp++]=pc; }
-static inline void _ANNN(void) { uint16_t nnn=op&0x0FFF; I=nnn; }
-static inline void _BNNN(void) { uint16_t nnn=op&0x0FFF; pc=nnn+v[0x0]; }
-static inline void _6XNN(void) { uint16_t nn=op&0x00FF; uint8_t x=(op&0x0F00)>>8; v[x]=nn;  }
-static inline void _7XNN(void) { uint16_t nn=op&0x00FF; uint8_t x=(op&0x0F00)>>8; v[x]+=nn; }
-static inline void _3XNN(void) { uint8_t x=(op&0x0F00)>>8; uint16_t nn=op&0x00FF; if(v[x]==nn) pc+=0x0002; }
-static inline void _4XNN(void) { uint8_t x=(op&0x0F00)>>8; uint16_t nn=op&0x00FF; if(v[x]!=nn) pc+=0x0002; }
-static inline void _CXNN(void) { uint8_t x=(op&0x0F00)>>8; uint16_t nn=op&0x00FF; v[x]=nn&(rand()%256); }
-static inline void _5XY0(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; if(v[x]==v[y]) pc+=0x0002; }
-static inline void _9XY0(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; if(v[x]!=v[y]) pc+=0x0002; }
-static inline void _8XY0(void) { uint8_t x=(op&0x0F00)>>8, y=op&0x00F0; v[x]=v[y]; }
-static inline void _8XY1(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]|=v[y]; }
-static inline void _8XY2(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]&=v[y]; }
-static inline void _8XY3(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[x]^=v[y]; }
-static inline void _8XY4(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF] = v[x]+v[y]>0xFF ? 0x01:0x00; v[x]+=v[y]; } /* overflow check */
-static inline void _8XY5(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF] = v[x]-v[y]<0x00 ? 0x01:0x00; v[x]-=v[y]; } /* undrflow check */
-static inline void _8XY6(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF] = v[y]&0x01; v[x]=v[y]>>1; }
-static inline void _8XYE(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF] = v[y]&0x80; v[x]=v[y]<<1; }
-static inline void _8XY7(void) { uint8_t x=(op&0x0F00)>>8, y=(op&0x00F0)>>4; v[0xF] = v[y]-v[x]<0x00 ? 0x00:0x01; v[x]=v[y]-v[x]; } /* undrflow check */
-static inline void _EX9E(void) { uint8_t x=(op&0x0F00)>>8; int temp; timeout(0); temp=getch(); if(temp!=ERR) if(v[x]==(uint8_t)temp) pc+=0x0002; } /* non blocking */
-static inline void _EXA1(void) { uint8_t x=(op&0x0F00)>>8; int temp; timeout(0); temp=getch(); if(temp!=ERR) if(v[x]!=(uint8_t)temp) pc+=0x0002; } /* non blocking */
-static inline void _FX0A(void) { uint8_t x=(op&0x0F00)>>8; int temp; timeout(-1); temp=getch(); if(temp!=ERR) v[x]=(uint8_t)temp; }
-static inline void _FX07(void) { uint8_t x=(op&0x0F00)>>8; v[x]=dt; }
-static inline void _FX15(void) { uint8_t x=(op&0x0F00)>>8; dt=v[x]; }
-static inline void _FX18(void) { uint8_t x=(op&0x0F00)>>8; st=v[x]; }
-static inline void _FX1E(void) { uint8_t x=(op&0x0F00)>>8; I+=v[x]; }
-static inline void _FX29(void) { uint8_t x=(op&0x0F00)>>8; I=5*v[x]; }
-static inline void _FX33(void) { uint8_t x=(op&0x0F00)>>8; rom[I]=(v[x]/100)%10, rom[I+1]=(v[x]/10)%10, rom[I+2]=v[x]%10; }
-//static inline void _FX55(void) { for(int i=0; i<((op&0x0F00)>>8); i++) rom[I+i]=v[((op&0x0F00)>>8)+i]; }
-//static inline void _FX65(void) { for(int i=0; i<((op&0x0F00)>>8); i++) v[((op&0x0F00)>>8)+i]=rom[I+i]; }
-static inline void _00E0(void) { for(int i=0; i<VROWS; i++) for(int j=0; j<VCOLS; j++) vram[i][j]=0x00; }
-static inline void _DXYN(void)
+static long load(const char* str)
 {
-    uint8_t x = v[(op&0x0F00)>>8]; // column
-    uint8_t y = v[(op&0x00F0)>>4]; // row
-    uint8_t n = op&0x000F;         // number of bytes to xor to the screen
-    if(y > VROWS-1) y -= VROWS;      // horizonal wrap around
-    if(x > VCOLS-1) x -= VCOLS;      // vertical wrap around
-    for(uint8_t i=0; i<n; i++)
-    for(uint8_t j=0; j<n; j++)
-    {
-        uint8_t bit = (rom[I+i] >> (7-j)) & 0x01;       // bits to be xor'd to vram
-        v[0xF] = (vram[y+i][x+j] && bit) ? 0x01 : 0x00; // if bit and vram is 1, erase imminent, raise flag
-        vram[y+i][x+j] ^= bit;                          // xor bit and vram
-    }
-    init_pair(1, COLOR_BLACK, COLOR_RED);             // initialize COLOR_PAIR(1)
-    for(uint8_t i=0; i<VROWS; i++)
-    for(uint8_t j=0; j<VCOLS; j++)
-    {
-        mvaddch(i, 2*j+0, vram[i][j] ? ' '|COLOR_PAIR(1) : ' '); // use COLOR_PAIR(1)
-        mvaddch(i, 2*j+1, vram[i][j] ? ' '|COLOR_PAIR(1) : ' '); // use COLOR_PAIR(1)
-    }
-    refresh();
-}
-
-static void cycle(void)
-{
-    /* emulate */
-    op = (rom[pc]<<8)+(rom[pc+1]&0x00FF);
-    pc += 0x0002;
-    if(dt>0) dt--; // does this go after the loop or before? */
-    if(st>0) st--; /* a timer value of 01 will have no audible effect */
-    switch(op&0xF000)
-    {
-            case 0x1000: _1NNN(); break;
-            case 0x2000: _2NNN(); break;
-            case 0x3000: _3XNN(); break;
-          //case 0x4000: _4XNN(); break;
-          //case 0x5000: _5XY0(); break;
-            case 0x6000: _6XNN(); break;
-            case 0x7000: _7XNN(); break;
-          //case 0x9000: _9XY0(); break;
-            case 0xA000: _ANNN(); break;
-          //case 0xB000: _BNNN(); break;
-            case 0xC000: _CXNN(); break;
-            case 0xD000: _DXYN(); break;
-        case 0x0000:
-            switch(op&0x000F)
-            {
-              //case 0x00EE: _00EE(); break;
-            }
-            break;
-        case 0x8000:
-            switch(op&0x000F)
-            {
-                case 0x0000: _8XY0(); break;
-              //case 0x0001: _8XY1(); break;
-              //case 0x0002: _8XY2(); break;
-              //case 0x0003: _8XY3(); break;
-              //case 0x0004: _8XY4(); break;
-              //case 0x0005: _8XY5(); break;
-              //case 0x0006: _8XY6(); break;
-              //case 0x0007: _8XY7(); break;
-              //case 0x000E: _8XYE(); break;
-            }
-            break;
-        case 0xE000:
-            switch(op&0x00FF)
-            {
-              //case 0x009E: _EX9E(); break;
-              //case 0x00A1: _EXA1(); break;
-            }
-            break;
-        case 0xF000:
-            switch(op&0x00FF)
-            {
-              //case 0x0007: _FX07(); break;
-              //case 0x000A: _FX0A(); break;
-              //case 0x0015: _FX15(); break;
-              //case 0x0018: _FX18(); break;
-              //case 0x001E: _FX1E(); break;
-              //case 0x0029: _FX29(); break;
-              //case 0x0033: _FX33(); break;
-              //case 0x0055: _FX55(); break;
-              //case 0x0065: _FX65(); break;
-            }
-            break;
-    }
-    napms(1);
-}
-
-long load(const char* str)
-{
-    uint8_t ch[80] =
-    {
+    u8 ch[80] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, /* 0 */
         0x20, 0x60, 0x20, 0x20, 0x70, /* 1 */
         0xF0, 0x10, 0xF0, 0x80, 0xF0, /* 2 */
@@ -162,46 +108,47 @@ long load(const char* str)
         0xF0, 0x80, 0xF0, 0x80, 0xF0, /* E */
         0xF0, 0x80, 0xF0, 0x80, 0x80  /* F */
     };
-    FILE* fp = fopen(str, "rb");
+    FILE* fp;
+    if((fp = fopen(str, "rb")) == NULL) return -1;
     fseek(fp, 0, SEEK_END);
     long sz = ftell(fp);
     rewind(fp);
-    uint8_t buf[4096];
+    u8 buf[BYTES];
     fread(buf, 1, sz, fp);
     fclose(fp);
-    for(uint16_t i=0; i<80; i++) rom[i+0x0000] = ch[i];
-    for(uint16_t i=0; i<sz; i++) rom[i+0x0200] = buf[i];
+    for(u16 i=0; i<80; i++) mem[i] = ch[i];
+    for(u16 i=0; i<sz; i++) mem[i+START] = buf[i];
     return sz;
 }
 
-void dumprom(long sz)
+static void debug(void)
 {
-    printf("Program Size: %d Bytes\n", sz);
-    printf(".FONT\n");
-    for(uint16_t i=0; i<80; i+=5)
-        printf("%02X %02X %02X %02X %02X\n", rom[i], rom[i+1], rom[i+2], rom[i+3], rom[i+4]);
-    printf(".PROGRAM\n");
-    for(uint16_t i=0x0200; i<0x0200+sz; i+=2)
-        printf("0x%04X: %02X%02X\n", i, rom[i], rom[i+1]);
-    printf("ROWS: %d\n", LINES);
-    printf("COLS: %d\n", COLS);
+    static u64 cyc; // cycles since startup
+    puts("resulting memory state:");
+    printf("%04X, %04X, %04X, %02X, %02X, %02X, %llu\n", op, pc, I, dt, st, sp, cyc++);
+    for(int i=0; i<VSIZE; i++) printf("%04X\t%04X\n", v[i], s[i]); // VSIZE is SSIZE so we can do this
+    printf("Push any key to continue...\n");
+    getchar();
+};
+
+static void cycle(void)
+{
+    op = (mem[pc]<<8)+(mem[pc+1]&0x00FF); // get opcode
+    pc += 0x0002; // point pc to next opcode for the next cycle
+    if(dt>0) dt--; // decrement delay timer if greater than 0
+    if(st>0) st--; // decrement sound timer if greater than 0
+    exec(list[op>>12]); // execute one cycle
+#define DEBUG
+    #ifdef DEBUG
+    debug();
+    #endif
+#undef DEBUG
 }
 
-int main(int argc, char* argv[])
+int main(const int argc, const char* argv[])
 {
-    if(argc!=2) return 1;
-    srand(time(NULL)); // seed random number generator for opcode _CXNN
-    long sz = load(argv[1]);
-    initscr();         // start ncurses
-    #define DEBUG 1
-    #if DEBUG==1
-    goto end;
-    #endif
-    timeout(-1);       // blocking keyboard input default 
-    start_color();     // enable color
-    curs_set(0);       // disable cursor
-    for(;;) cycle();
-end:endwin();          // end ncurses
-    dumprom(sz);       // put ROM contents on ncurses display
-    return 0;
+    if(argc!=2) return 1; // no game specified or more than one game specified
+    srand(time(NULL)); // seed rand() for opcode _CXNN
+    if(load(argv[1]) == -1) return 2; // game does not exist
+    for(;;) cycle(); // cycle forever, break with <ctrl+c>
 }
