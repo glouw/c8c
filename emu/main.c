@@ -71,17 +71,18 @@ static void _0___(void);
 static void _8___(void);
 static void _E___(void);
 static void _F___(void);
-static void (*opsa[])(void) = { _00E0, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _00EE, _0000 };
-static void (*opsb[])(void) = { _8XY0, _8XY1, _8XY2, _8XY3, _8XY4, _8XY5, _8XY6, _8XY7, _0000, _0000, _0000, _0000, _0000, _0000, _8XYE, _0000 };
-static void (*opsc[])(void) = { _0000, _EXA1, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _EX9E, _0000 };
-static void (*opsd[])(void) = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07, _0000, _0000, _FX0A, _0000, _0000, _0000, _0000, _0000,
-/* This opcode table looks-  */ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
-/* up which instruction to   */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
-/* execute based on the      */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* chip8's method of opcode  */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* branching - all functions */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* must be void(*a)(void)    */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
-static void (*list[])(void) = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
+static void (*opsa[ 16])(void) = { _00E0, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _00EE, _0000 };
+static void (*opsb[ 16])(void) = { _8XY0, _8XY1, _8XY2, _8XY3, _8XY4, _8XY5, _8XY6, _8XY7, _0000, _0000, _0000, _0000, _0000, _0000, _8XYE, _0000 };
+static void (*opsc[ 16])(void) = { _0000, _EXA1, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _EX9E, _0000 };
+static void (*opsd[128])(void) = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07, _0000, _0000, _FX0A, _0000, _0000, _0000, _0000, _0000,
+/* This opcode table looks-     */ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
+/* up which instruction to      */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
+/* execute based on the         */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* chip8's method of opcode     */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* branching - all functions    */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/* must be void(*a)(void)       */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/*                              */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
+static void (*list[ 16])(void) = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
 static void exec(void (*opcode)(void)) { opcode(); }
 static void _0___(void) { exec(opsa[op&0x000F]); }
 static void _8___(void) { exec(opsb[op&0x000F]); }
@@ -134,21 +135,21 @@ static void debug(void)
 static void cycle(void)
 {
     op = (mem[pc]<<8)+(mem[pc+1]&0x00FF); // get opcode
-    pc += 0x0002; // point pc to next opcode for the next cycle
-    if(dt>0) dt--; // decrement delay timer if greater than 0
-    if(st>0) st--; // decrement sound timer if greater than 0
-    exec(list[op>>12]); // execute one cycle
+    pc += 0x0002;       // point pc to next opcode for the next cycle
+    if(dt>0) dt--;      // decrement delay timer if greater than 0
+    if(st>0) st--;      // decrement sound timer if greater than 0
+    exec(list[op>>12]); // execute one opcode
 #define DEBUG
-    #ifdef DEBUG
+#   ifdef DEBUG
     debug();
-    #endif
+#   endif
 #undef DEBUG
 }
 
 int main(const int argc, const char* argv[])
 {
     if(argc!=2) return 1; // no game specified or more than one game specified
-    srand(time(NULL)); // seed rand() for opcode _CXNN
+    srand(time(NULL));    // seed rand() for opcode _CXNN
     if(load(argv[1]) == -1) return 2; // game does not exist
-    for(;;) cycle(); // cycle forever, break with <ctrl+c>
+    for(;;) cycle();      // cycle forever, break with <ctrl+c>
 }
