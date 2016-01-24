@@ -25,7 +25,7 @@ void delt(struct node* list)
 }
 
 /* hash find function where label is key */
-int find(struct node* list, const char* label)
+int find(struct node* list, char* label)
 {
     struct node* temp = list;
     while(temp->next != NULL)

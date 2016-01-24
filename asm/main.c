@@ -1,16 +1,10 @@
 #include "public.h"
 
-/* compare function for bsearch within main */
-static int cmp(const void* a, const void* b)
-{
-    return strcmp((char*)a, *(char**)b);
-}
-
-/* get psyched! */
+/* let's rock ! */
 int main(int argc, char* argv[])
 {
     /* error goes true if a single error is found during assembly */
-    bool error = false;
+    int error = 0;
     /* chip8 wakes up at this address */
     int address = 0x0200;
     /* linked list keeps tracks of declared labels and their addresses */
@@ -19,8 +13,10 @@ int main(int argc, char* argv[])
     char* line = NULL; unsigned len = 0;
     /* label, mnem, operand pointers for line */
     char *l, *m, *o;
-    /* error lines: linenum is for current, plinenum for past */
-    int linenum, plinenum;
+    /* label, mnem, operand delimeters for token extraction */
+    char* deliml= ":";
+    char* delimm = " \t;";
+    char* delimo = ";";
     /* default to standard in, out */
     FILE* in  = stdin;
     FILE* out = stdout;
@@ -50,77 +46,91 @@ int main(int argc, char* argv[])
     /* let's get to work! read a line from in */
     while(getline(&line, &len, in) != -1)
     {
-        /* The address is first and foremost incremented to make room for the zero vector */
+        /* the address is first and foremost incremented to make room for the zero vector */
         address += 0x0002;
         char* semicolon = index(line, ';');
         char* colon     = index(line, ':');
         char* tabbed    = index(line, '\t');
-        char* newline   = index(line, '\n');
-        /* If the line read is empty (just a newline) then ignore it */
+        char* spaced    = index(line, ' ');  // when reading from a file a tab is seen as several spaces
+        char* newline   = index(line, '\n'); // when readng from standard input a tab is a tab character
+        /* if the line read is empty (just a newline) then ignore it */
         if(line == newline)
         {
             address -= 0x0002;
             continue;
         }
-        /* A line must always finish with a semicolon - Everything after a semicolon is a comment and ignored */
+        /* a line must always finish with a semicolon - Everything after a semicolon is a comment and ignored */
         if(!semicolon)
         {
-            linenum = (address-0x0200)/2;
-            fprintf(stderr, "line %d: error: missing semicolon\n", linenum);
-            error = true;
+            error = errorc(oname, address);
             continue;
         }
-        /* A line must either start with a tab character or a label */
-        /* A label is defined by the colon (':') character if placed before the semicolon */
+        /* if the line is commented out, ignore it and continue onto the next line */
+        if(line == semicolon)
+        {
+            continue;
+        }
+        /* a line must either start with a tab character or a label */
+        /* a label is defined by the colon (':') character if placed before the semicolon */
         /* Thus, if a line has tab and a label then it is invalid */
-        if(line==tabbed && colon && colon<semicolon)
+        if((line==tabbed && line!= spaced) && colon && colon<semicolon)
         {
-            linenum = (address-0x0200)/2;
-            fprintf(stderr, "line %d: error: label with tab\n", linenum);
-            error = true;
+            error = errord(oname, address);
             continue;
         }
-        /* Likewise, if a line does not have a tab nor a label then it is invalid */
-        else if(line!=tabbed && !colon)
+        /* likewise, if a line does not have a tab nor a label then it is invalid */
+        else if((line!=tabbed && line!=spaced) && !colon)
         {
-            linenum = (address-0x0200)/2;
-            fprintf(stderr, "line %d: error: missing tab\n", linenum);
-            error = true;
+            error = errore(oname, address);
             continue;
         }
-        /* Begin token collection: If the line is tabbed, collect tokens mnem and oper */
-        if(line == tabbed)
+        /* begin token collection: If the line is tabbed, collect tokens mnem and oper */
+        if(line == tabbed || line == spaced)
         {
-            m = strtok(line, " \t;"); /* mnem */
-            o = strtok(NULL, ";");    /* oper */
+            m = strtok(line, delimm); /* mnem */
+            o = strtok(NULL, delimo);    /* oper */
         }
-        /* Else, collect label, mnem, and oper tokens */
+        /* else, collect label, mnem, and oper tokens */
         else
         {
-            l = strtok(line, ":");    /* labl */
-            m = strtok(NULL, " \t;"); /* mnem */
-            o = strtok(NULL, ";");    /* oper */
+            l = strtok(line, deliml);    /* labl */
+            m = strtok(NULL, delimm); /* mnem */
+            o = strtok(NULL, delimo);    /* oper */
             /* If the user attempts to declare a label that already exists throw an error */
             int paddress = find(list, l); // past address
             if(paddress != -1)
             {
-                plinenum = (paddress-0x0200)/2; // past line number
-                linenum = (address-0x0200)/2;   // line number
-                fprintf(stderr, "line %d: error: label %s already exists at line %d\n", linenum, l, plinenum);
-                error = true;
+                error = errorf(oname, address, paddress, l);
                 continue;
             }
             /* else, push back the address to list */
-            else list = push(list, address, l);
+            else
+            {
+                list = push(list, address, l);
+            }
+        }
+        /* if the first two chars of the mnem are "0x" then regard the following as data */
+        if(strncmp(m, "0x", 2) == 0)
+        {
+            int nibs = 4;
+            char* nib = m + strlen(m) - nibs; // skip 0x
+            if(index(nib, 'x'))
+            {
+                error = errori(oname, address, nibs);
+            }
+            else
+            {
+                fprintf(out, "%s\n", nib);
+            }
+            continue;
         }
         /* bsearch mnem list for mnemonic m */
+        int cmp(const void* a, const void* b);
         char** found = bsearch(m, mnem, sizeof(mnem)/sizeof(char*), sizeof(char*), cmp);
         /* if not found then that mnem is not supported by chip8; throw error */
         if(!found)
         {
-            linenum = (address-0x0200)/2;
-            fprintf(stderr, "line %d: error: %s is not valid mnem\n", linenum, m);
-            error = true;
+            error = errorg(oname, address, m);
             continue;
         }
         /* otherwise, the mnem number, mnum (possible 0-18), is simply the array index
@@ -129,25 +139,25 @@ int main(int argc, char* argv[])
         /* assemble */
         switch(mnum)
         {
-            case  0:           add(out, o               ); break;
-            case  1:           and(out, o               ); break;
-            case  2: error |= call(out, o, list, address); break;
-            case  3:           cls(out                  ); break;
-            case  4:           drw(out, o               ); break;
-            case  5: error |= jump(out, o, list, address); break;
-            case  6: error |=   ld(out, o, list, address); break;
-            case  7:            or(out, o               ); break;
-            case  8:           ret(out                  ); break;
-            case  9:           rnd(out, o               ); break;
-            case 10:            se(out, o               ); break;
-            case 11:           shl(out, o               ); break;
-            case 12:           shr(out, o               ); break;
-            case 13:           skp(out, o               ); break;
-            case 14:          skpn(out, o               ); break;
-            case 15:           sne(out, o               ); break;
-            case 16:           sub(out, o               ); break;
-            case 17:          subn(out, o               ); break;
-            case 18:           xor(out, o               ); break;
+            case  0: error |=  add(iname, out, o, address      ); break;
+            case  1: error |=  and(iname, out, o, address      ); break;
+            case  2: error |= call(iname, out, o, address, list); break;
+            case  3:           cls(       out                  ); break;
+            case  4: error |=  drw(iname, out, o, address      ); break;
+            case  5: error |= jump(iname, out, o, address, list); break;
+            case  6: error |=   ld(iname, out, o, address, list); break;
+            case  7:            or(       out, o               ); break;
+            case  8:           ret(       out                  ); break;
+            case  9: error |=  rnd(iname, out, o, address      ); break;
+            case 10: error |=   se(iname, out, o, address      ); break;
+            case 11:           shl(       out, o               ); break;
+            case 12:           shr(       out, o               ); break;
+            case 13:           skp(       out, o               ); break;
+            case 14:          skpn(       out, o               ); break;
+            case 15: error |=  sne(iname, out, o, address      ); break;
+            case 16:           sub(       out, o               ); break;
+            case 17:          subn(       out, o               ); break;
+            case 18:           xor(       out, o               ); break;
         }
         fputc('\n', out);
     }
@@ -159,9 +169,7 @@ int main(int argc, char* argv[])
         int eaddress = find(list, ename);
         if(eaddress == -1)
         {
-            fprintf(stderr, "fatal error: cannot find entry point label %s\n", ename);
-            error = true;
-            remove(oname);
+            error = errorh(oname, ename);
         }
         /* else create tmp file and make the first line a zero vector for MAIN */
         else
@@ -177,11 +185,16 @@ int main(int argc, char* argv[])
             /* rename temp file to real */
             rename(tname, oname);
         }
-        /* if there were any errors during assembly then remove the assembled file */
+        /* if there were any errors during assembly then incinerate the assembled file */
         if(error)
         {
             remove(oname);
-            fprintf(stderr, "%s failed to assemble\n", oname);
+            fprintf(stderr, RED"FAILURE: "NRM"%s\n", oname);
+        }
+        /* otherwise, we're good to go! */
+        else
+        {
+            fprintf(stderr, GRN"SUCCESS: "NRM"%s\n", oname);
         }
     }
     /* free heaped memory, go home */
@@ -190,4 +203,9 @@ int main(int argc, char* argv[])
     free(line);
     delt(list);
     return 0;
+}
+/* compare function for bsearch within main */
+int cmp(const void* a, const void* b)
+{
+    return strcmp((char*)a, *(char**)b);
 }
