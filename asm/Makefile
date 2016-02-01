@@ -3,7 +3,7 @@ CFLAGS = -std=gnu11 -std=gnu11
 OFLAGS = -Og -g
 WFLAGS = -Wshadow -Wall -Wextra -pedantic
 
-OBJS = main.o node.o opcode.o error.o
+OBJS = main.o node.o assemble.o
 PROJ = asm
 
 $(PROJ) : $(OBJS)
@@ -15,11 +15,8 @@ main.o: main.c public.h Makefile
 node.o: node.c public.h Makefile
 	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c node.c
 
-opcode.o: opcode.c public.h Makefile
-	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c opcode.c
-
-error.o: error.c public.h Makefile
-	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c error.c
+assemble.o: assemble.c public.h Makefile
+	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c assemble.c
 
 clean:
 	rm -f $(PROJ)
