@@ -1,301 +1,403 @@
-/* int functions return 0; if there are no aerrors */
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include "tree.h"
+#include "assemble.h"
 
-#include "public.h"
-
-static char* arg = ", \t\0";
-
-static int add(struct pack p)
+/* unsigned int (data type) */
+static int _uint(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    /* UINT */
+    if(strncmp(a,"0x",2)==0 && strlen(a+2)==4 &&
+       isxdigit(a[2]) &&
+       isxdigit(a[3]) &&
+       isxdigit(a[4]) &&
+       isxdigit(a[5]))
+           fprintf(hexid, "%s", a+2);
+    else return 1;
+    return 0;
+}
+
+/* addition */
+static int add(char* o, tnode* labels, FILE* hexid)
+{
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* ADD Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-        fprintf(p.out, "8%c%c4", a[1], b[1]); // ADD Vx, Vy
+           fprintf(hexid, "8%c%c4", a[1], b[1]);
+    /* ADD I, Vx */
     else
     if(strlen(a)==1 && a[0]=='I' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c1E", b[1]); // ADD I, Vx
+           fprintf(hexid, "F%c1E", b[1]);
+    /* ADD Vx, byte */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strncmp(b,"0x",2)==0 && strlen(b+2)==2)
-         fprintf(p.out, "7%c%s", a[1], b+2); // ADD Vx, byte
-    else
-        return 1;
+       strncmp(b,"0x",2)==0 && strlen(b+2)==2 &&
+       isxdigit(b[2]) &&
+       isxdigit(b[3]))
+           fprintf(hexid, "7%c%s", a[1], b+2);
+    else return 1;
     return 0;
 }
 
-static int and(struct pack p)
+/* bitwise and */
+static int and(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
-    if(strlen(a)==2 &&
-       a[0]=='V' && isxdigit(a[1]) && strlen(b)==2 &&
-       b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c2", a[1], b[1]); // AND Vx, Vy
-    else
-        return 1;
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* AND Vx, Vy */
+    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
+       strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
+           fprintf(hexid, "8%c%c2", a[1], b[1]);
+    else return 1;
     return 0;
 }
 
-static int call(struct pack p)
+/* call subroutine */
+static int call(char* o, tnode* labels, FILE* hexid)
 {
-    int paddress = -1;
-    char* a = strtok(p.o, arg);
-    if((paddress = find(p.list, a)) != -1)
-        fprintf(p.out, "2%X", paddress); // CALL ad
-    else
-        return 2;
+    char* a = strtok(o, "\t ,");
+    tnode* found = tree.get(labels, a);
+    /* CALL ad */
+    if(found)
+        fprintf(hexid, "2%03X", found->address);
+    else return 2;
     return 0;
 }
 
-static int cls(struct pack p)
+/* clear display */
+static int cls(char* o, tnode* labels, FILE* hexid)
 {
-    (void)p;
-    fprintf(p.out, "00E0"); // CLS
+    (void)o, (void)hexid, (void)labels;
+    /* CLS */
+    fprintf(hexid, "00E0");
     return 0;
 }
 
-static int drw(struct pack p)
+/* draw sprite */
+static int drw(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
-    char* c = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    char* c = strtok(NULL, "\t ,");
+    /* DRW Vx, Vy, nib */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]) &&
-       strlen(c)==3 && strncmp(c, "0x", 2)==0)
-         fprintf(p.out, "D%c%s", a[1], c+2); // DRW Vx, Vy, nib
-    else
-        return 1;
+       strlen(c)==3 && strncmp(c, "0x", 2)==0 && isxdigit(c[2]))
+           fprintf(hexid, "D%c%c%c", a[1], b[1], c[2]);
+    else return 1;
     return 0;
 }
 
-static int jump(struct pack p) // 5
+/* jump */
+static int jp(char* o, tnode* labels, FILE* hexid)
 {
-    int paddress = -1;
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
-    if(a && strlen(a)==2 && a[0]=='V' && a[1]=='0' &&
-       b && (paddress=find(p.list, b)) != -1)
-        fprintf(p.out, "B%X", paddress); // JUMP V0, ad
+    tnode* found;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* JP V0, ad */
+    if(strlen(a)==2 && a[0]=='V' && a[1]=='0' &&
+       (found = tree.get(labels, b)))
+           fprintf(hexid, "B%03X", found->address);
+    /* JP ad */
     else
-    if(a && (paddress=find(p.list, a)) != -1)
-        fprintf(p.out, "1%X", paddress); // JUMP ad
-    else
-        return 2;
+    if((found = tree.get(labels, a)))
+        fprintf(hexid, "1%03X", found->address);
+    else return 2;
     return 0;
 }
 
-static int ld(struct pack p) // 6
+/* load */
+static int ld(char* o, tnode* labels, FILE* hexid)
 {
-    int paddress = -1;
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    tnode* found;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* LD DT, Vx */
     if(strlen(a)==2 && a[0]=='D' && a[1]=='T' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c15", b[1]); // LD DT, Vx
+           fprintf(hexid, "F%c15", b[1]);
+    /* LD ST, Vx */
     else
     if(strlen(a)==2 && a[0]=='S' && a[1]=='T' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c18", b[1]); // LD ST, Vx
+           fprintf(hexid, "F%c18", b[1]);
+    /* LD F, Vx */
     else
     if(strlen(a)==1 && a[0]=='F' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c29", b[1]); // LD F, Vx
+           fprintf(hexid, "F%c29", b[1]);
+    /* LD B, Vx */
     else
     if(strlen(a)==1 && a[0]=='B' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c33", b[1]); // LD B, Vx
+           fprintf(hexid, "F%c33", b[1]);
+    /* LD Vx, DT */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='D' && b[1]=='T')
-         fprintf(p.out, "F%c07", a[1]); // LD Vx, DT
+           fprintf(hexid, "F%c07", a[1]);
+    /* LD Vx, [I] */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==1 && b[0]=='I')
-         fprintf(p.out, "F%c65", a[1]); // LD Vx, I
+       strlen(b)==3 &&
+       b[0]=='[' &&
+       b[1]=='I' &&
+       b[2]==']')
+           fprintf(hexid, "F%c65", a[1]);
+    /* LD Vx, K */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==1 && b[0]=='K')
-         fprintf(p.out, "F%c0A", a[1]); // LD Vx, K
+           fprintf(hexid, "F%c0A", a[1]);
+    /* LD Vx, Vy */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-        fprintf(p.out, "8%c%c0", a[1], b[1]); // LD Vx, Vy
+           fprintf(hexid, "8%c%c0", a[1], b[1]);
+    /* LD Vx, byte */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-      (strlen(b)==4 && strncmp(b, "0x", 2))==0)
-        fprintf(p.out, "6%c%s", a[1], b+2); // LD Vx, byte
+      (strlen(b)==4 && strncmp(b, "0x", 2))==0 &&
+      isxdigit(b[2]) &&
+      isxdigit(b[3]))
+           fprintf(hexid, "6%c%s", a[1], b+2);
+    /* LD [I], Vx */
     else
-    if(strlen(a)==1 && a[0]=='I' &&
+    if(strlen(a)==3 &&
+       a[0]=='[' &&
+       a[1]=='I' &&
+       a[2]==']' &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "F%c55", b[1]); // LD I, Vx
+           fprintf(hexid, "F%c55", b[1]);
+    /* LD I, ad */
     else
     if(strlen(a)==1 && a[0]=='I')
     {
-       if((paddress = find(p.list, b)) != -1)
-           fprintf(p.out, "A%X", paddress); // LD I, ad
-       else
-           return 2;
+       if((found = tree.get(labels, b)))
+           fprintf(hexid, "A%03X", found->address);
+       else return 2;
     }
-    else
-        return 1;
+    else return 1;
     return 0;
 }
 
-static int or(struct pack p)
+/* bitwise or */
+static int or(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* OR Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c1", a[1], b[1]); // OR Vx, Vy
-    else
-        return 1;
+           fprintf(hexid, "8%c%c1", a[1], b[1]);
+    else return 1;
     return 0;
 }
 
-static int ret(struct pack p)
+/* return from subroutine */
+static int ret(char* o, tnode* labels, FILE* hexid)
 {
-    (void)p; // no need to unpack, nothing is needed
-    fprintf(p.out, "00EE");
+    (void)o, (void)hexid, (void)labels;
+    /* RET */
+    fprintf(hexid, "00EE");
     return 0;
 }
 
-static int rnd(struct pack p)
+/* random number with mask */
+static int rnd(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* RND Vx, byte */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==4 && strncmp(b, "0x", 2)==0)
-         fprintf(p.out, "C%c%s", a[1], b+2); // RND Vx, byte
-    else
-        return 1;
+       strlen(b)==4 && strncmp(b, "0x", 2)==0 &&
+       isxdigit(b[2]) &&
+       isxdigit(b[3]))
+           fprintf(hexid, "C%c%s", a[1], b+2);
+    else return 1;
     return 0;
 }
 
-static int se(struct pack p)
+/* skip instruction if... */
+static int se(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
-    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-        fprintf(p.out, "5%c%c0", a[1], b[1]); // SE Vx, Vy
-    else
-    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==4 && strncmp(b, "0x", 2)==0)
-         fprintf(p.out, "3%c%s", a[1], b+2); // Se Vx, byte
-    else
-        return 1;
-    return 0;
-}
-
-static int shl(struct pack p)
-{
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SE Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%cE", a[1], b[1]); // SHL Vx, Vy
+           fprintf(hexid, "5%c%c0", a[1], b[1]);
+    /* SE Vx, byte */
     else
-        return 1;
+    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
+       strlen(b)==4 && strncmp(b, "0x", 2)==0 &&
+       isxdigit(b[2]) &&
+       isxdigit(b[3]))
+           fprintf(hexid, "3%c%s", a[1], b+2);
+    else return 1;
     return 0;
 }
 
-static int shr(struct pack p)
+/* shift left */
+static int shl(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SHL Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c6", a[1], b[1]); // SHR Vx, Vy
-    else
-        return 1;
+           fprintf(hexid, "8%c%cE", a[1], b[1]);
+    else return 1;
     return 0;
 }
 
-static int skp(struct pack p)
+/* shift right */
+static int shr(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SHR Vx, Vy */
+    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
+       strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
+           fprintf(hexid, "8%c%c6", a[1], b[1]);
+    else return 1;
+    return 0;
+}
+
+/* skip instruction if keypress */
+static int skp(char* o, tnode* labels, FILE* hexid)
+{
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    /* SKP Vx */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]))
-        fprintf(p.out, "E%c9E", a[1]); // SKP Vx
-    else
-        return 1;
+        fprintf(hexid, "E%c9E", a[1]);
+    else return 1;
     return 0;
 }
 
-static int skpn(struct pack p)
+/* do not skip instruction if keypress */
+static int sknp(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    /* SKNP Vx */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]))
-        fprintf(p.out, "E%cA1", a[1]); // SKNP Vx
-    else
-        return 1;
+        fprintf(hexid, "E%cA1", a[1]);
+    else return 1;
     return 0;
 }
 
-static int sne(struct pack p)
+/* do not skip instruction if... */
+static int sne(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SNE Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-        fprintf(p.out, "9%c%c0", a[1], b[1]); // SNE Vx, Vy
+           fprintf(hexid, "9%c%c0", a[1], b[1]);
+    /* SNE Vx, byte */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==4 && strncmp(b, "0x", 2)==0)
-        fprintf(p.out, "4%c%s", a[1], b+2); // SNE Vx, byte
-    else
-        return 1;
+       strlen(b)==4 && strncmp(b, "0x", 2)==0 &&
+       isxdigit(b[2]) &&
+       isxdigit(b[3]))
+           fprintf(hexid, "4%c%s", a[1], b+2);
+    else return 1;
     return 0;
 }
 
-static int sub(struct pack p)
+/* subtract */
+static int sub(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
-    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c5", a[1], b[1]); // SUB Vx, Vy
-    else
-        return 1;
-    return 0;
-}
-
-static int subn(struct pack p)
-{
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SUB Vx, Vy */ 
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c7", a[1], b[1]); // SUBN Vx, Vy
-    else
-        return 1;
+           fprintf(hexid, "8%c%c5", a[1], b[1]);
+    else return 1;
     return 0;
 }
 
-static int xor(struct pack p)
+/* reverse subtract */
+static int subn(char* o, tnode* labels, FILE* hexid)
 {
-    char* a = strtok(p.o, arg);
-    char* b = strtok(NULL, arg);
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* SUBN Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
-         fprintf(p.out, "8%c%c3", a[1], b[1]); // XOR Vx, Vy
-    else
-        return 1;
+           fprintf(hexid, "8%c%c7", a[1], b[1]);
+    else return 1;
     return 0;
 }
 
-static int (*mnemfp[])(struct pack) =
+/* exslusive or */
+static int xor(char* o, tnode* labels, FILE* hexid)
 {
-    add, and, call, cls, drw, jump, ld, or, ret, ret, rnd, se, shl,
-    shr, skp, skpn, sne, sub, subn, xor
+    (void)labels;
+    char* a = strtok(o, "\t ,");
+    char* b = strtok(NULL, "\t ,");
+    /* XOR Vx, Vy */
+    if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
+       strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
+           fprintf(hexid, "8%c%c3", a[1], b[1]);
+    else return 1;
+    return 0;
+}
+
+/* mnemonic functions */
+static int (*mnemonicf[])(char* o, tnode* labels, FILE* hexid) =
+{
+    add, and, call, cls, drw, jp, ld, or, ret, rnd, se, shl,
+    shr, skp, sknp, sne, sub, subn, _uint, xor
 };
 
-int assemble(int mnum, struct pack p)
+/* for use with bsearch */
+static int compare(const void* a, const void* b)
 {
-    int (*_assemble)(struct pack) = mnemfp[mnum];
-    int aerror = _assemble(p);
-    if(!aerror)
-        fputc('\n', p.out);
-    return aerror;
+    return strcmp((char*)a, *(char**)b);
+}
+
+/* assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
+int assemble(char* m, char* o, tnode* labels, FILE* hexid)
+{
+    /* suorted chip8 mnemonics */
+    char* mnemonic[] =
+    {
+        "ADD","AND","CALL","CLS","DRW","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP",
+        "SNE","SUB","SUBN","UINT","XOR"
+    };
+    /* binary search mnemonic[] for mnemonic m */
+    char** found = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
+    /* if mnemonic m is not found in mnemonic[] then return the "mnemonic not found" error number */
+    if(!found) return 3;
+    /* the mnemonic function that needs to be called is the index of the mnemonic array */
+    int (*_assemble)(char* o, tnode* labels, FILE* hexid) = mnemonicf[found-mnemonic];
+    /* if return 0 then all is well else a specific error occured */
+    int error = _assemble(o, labels, hexid);
+    /* a line will have been printed if there was no error so finish it with a newline char */
+    if(!error) fputc('\n', hexid);
+    /* return the error code for highlevel handling */
+    return error;
 }

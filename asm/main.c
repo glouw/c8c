@@ -1,171 +1,113 @@
-#include "public.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include "tree.h"
+#include "assemble.h"
 
-/* compare function for bsearch within main */
-int cmp(const void* a, const void* b)
+/* if a line does not have alpha numeric characters (but has spaces/tabs) then it is a comment line */
+static int iscomment(char* line)
 {
-    return strcmp((char*)a, *(char**)b);
+    for(; *line; ++line) if(isalnum(*line)) return 0;
+    return 1;
 }
 
+/* let's rock */
 int main(int argc, char* argv[])
 {
-    /* compiler error: cerror goes 1 when there is a problem anywhere */
-    int cerror = 0;
-    /* chip8 wakes up at this address */
-    int address = 0x0200, linenumber = 1;
-    /* linked list keeps tracks of declared labels and their addresses */
-    struct node* list = push(NULL, 0x0000, "N/A");
-    /* for getline() */
+    /* exit if assem and hexid files unspecified */
+    if(argc != 3) return 1;
+    /* assem for input */
+    FILE* assem = fopen(argv[1], "r");
+    /* if either assem failed to open then return 1 */
+    if(assem == NULL) return 1;
+    /* hexid for output */
+    FILE* hexid = fopen(argv[2], "w");
+    /* prepare for first scan; label&address pairs stored in tree "labels" */
+    tnode* labels = NULL;
+    /* 0x0200 is reserved for reset vector; label count stored in nlabels */
+    unsigned address = 0x0202, nlabels = 0;
+    /* FIRST PASS: gather labels */
     char* line = NULL;
     unsigned len = 0;
-    /* label, mnem, operand pointers for line */
-    char *l, *m, *o;
-    /* default to standard in, out */
-    FILE* in  = stdin;
-    FILE* out = stdout;
-    /* oname is output filepoint, iname is input file name */
-    char* oname = NULL;
-    char* iname = NULL;
-    /* supported chip8 mnems */
-    char* mnem[] =
+    while(getline(&line, &len, assem) != -1)
     {
-        "ADD","AND","CALL","CLS","DRW","JUMP","LD","OR","RET","RND","SE","SHL",
-        "SHR","SKP","SKPN","SNE","SUB","SUBN","XOR"
-    };
-    /* if one file is specified on commmand line then it is to be written to (oname) */
-    if(argc == 2)
-    {
-        oname = argv[argc-1];
-        out = fopen(oname, "w");
-    }
-    /* if two, read from the first (iname), write to the last (oname) */
-    if(argc == 3)
-    {
-        iname = argv[argc-2];
-        oname = argv[argc-1];
-        if((in = fopen(iname, "r")) == NULL)
-            fprintf(stderr, "file %s does not exist\n", iname);
-        out = fopen(oname, "w");
-    }
-    /* let's get to work! read a line from in */
-    while(getline(&line, &len, in) != -1)
-    {
-        /* the address is first and foremost incremented to make room for the zero vector */
+        /* find colon, semicolon, and newline characters within line */
+        char* colon = index(line, ':');
+        char* semic = index(line, ';');
+        char* newln = index(line, '\n');
+        /* if the line is only a newline then continue onto the next line */
+        if(line == newln) continue;
+        /* if there is a semicolon then end the line there, else end it at the newline */
+        if(semic) *semic = '\0'; else *newln = '\0';
+        /* if the line does not contain any alpha numeric characters then continue onto the next line */
+        if(iscomment(line)) continue;
+        /* if a colon exists then a label exists */
+        if(colon)
+        {
+            /* extract label */
+            char* label = strtok(line, ":");
+            /* add label&address pair to label tree */
+            labels = tree.add(nlabels++ ? labels : NULL, tree.new(label, address));
+        }
         address += 0x0002;
-        char* semicolon =  index(line, ';' );
-        char* colon     =  index(line, ':' );
-        char* tabbed    =  index(line, '\t');
-        char* spaced    =  index(line, ' ' );
-        char* newline   = rindex(line, '\n');
-        /* if empty line, ignore and continue */
-        if(line == newline)
-        {
-            address -= 0x0002;
-            continue;
-        }
-        /* if there is a semicolon then end the line at the semicolon */
-        if(semicolon)
-            *semicolon = '\0';
-        /* otherwise the line ends at the newline */
-        else
-            *newline = '\0';
-        /* if there is a colon then we have a label*/
-        if(colon && (line!=tabbed || line!=spaced))
-        {
-            l = strtok(line, ":");   /* labl */
-            m = strtok(NULL, " \t"); /* mnem */
-            o = strtok(NULL, "");    /* oper */
-            if(find(list, l) != -1)
-            {
-                cerror = 1;
-                linenumber = (address-0x0200)/2;
-                fprintf(stderr, "%s: error: line %d: label %s already exists\n", iname, linenumber, l);
-                continue;
-            }
-            list = push(list, address, l);
-        }
-        /* else if the line is tabbed (stdin) or spaced (file) then we do not have a label */
-        else if(line==tabbed || line==spaced)
-        {
-            m = strtok(line, " \t"); /* mnem */
-            o = strtok(NULL, "");    /* oper */
-        }
-        /* otherwise report that the line needs to be tabbed */
-        else
-        {
-            cerror = 1;
-            linenumber = (address-0x0200)/2;
-            fprintf(stderr, "%s: error: line %d: missing tab\n", iname, linenumber);
-            continue;
-        }
-        /* if the first two chars of _m_ are "0x" then this is not a mnemomnic, it is data */
-        if(strncmp(m, "0x", 2) == 0)
-        {
-            fprintf(out, "%s\n", m+2);
-            continue;
-        }
-        /* bsearch mnem list for mnemonic m */
-        char** found = bsearch(m, mnem, sizeof(mnem)/sizeof(char*), sizeof(char*), cmp);
-        /* if the mnem is not found in list throw an error */
-        if(!found)
-        {
-            cerror = 1;
-            linenumber = (address-0x0200)/2;
-            fprintf(stderr, "%s: error: line %d: %s not a valid CHIP8 mnem\n", iname, linenumber, m);
-            continue;
-        }
-        /* mnum can be found by subtracting 'mnem' from 'found' */
-        int mnum = found - mnem;
-        /* pack and go */
-        struct pack p = { out, o, list };
-        /* assemble, return assemble error */
-        int aerror = assemble(mnum, p);
-        /* handle assemble error if not zero */
-        if(aerror)
-        {
-            cerror = 1;
-            linenumber = (address-0x0200)/2;
-            char* message = "unhandled case in aerror switch statement";
-            switch(aerror)
-            {
-                case 1: message = "assembly failure"; break;
-                case 2: message = "unknown label";    break;
-            }
-            fprintf(stderr, "%s: error: line %d: %s %s\n", iname, linenumber, message, o);
-        }
     }
-    /* the final assembly requires a zero address but only if oname was specified on the command line */
-    if(oname)
+    /* publish reset vector (JP, addr) */
+    tnode* epoint = tree.get(labels, "MAIN");
+    fprintf(hexid, "1%03X\n", epoint->address);
+    /* rewind, prepare for second scan */
+    rewind(assem);
+    /* fail becomes 1 with assembly errors; .hex output is deleted at program exit if fail is 1 */
+    int fail = 0;
+    /* increment linenumber for every line read */
+    int linenumber = 0;
+    /* SECOND PASS: skip labels, tokenize mnemonics and operands, and assemble */
+    while(getline(&line, &len, assem) != -1)
     {
-        /* entry point */
-        char* epoint = "MAIN";
-        /* the entry address MAIN must be searched for and found first */
-        int eaddress = find(list, epoint);
-        /* if the eaddress was found then insert a zero vector */
-        if(eaddress != -1)
+        ++linenumber;
+        /* label, mnemonic, operand */
+        char* l, *m, *o;
+        /* find colon, semicolon, and newline characters */
+        char* colon = index(line, ':');
+        char* semic = index(line, ';');
+        char* newln = index(line, '\n');
+        /* if line only contains newline, continue onto next line */
+        if(line == newln) continue;
+        /* if there is a semicolon then end line there, else end at newline */
+        if(semic) *semic = '\0'; else *newln = '\0';
+        /* if the line does not contain any alpha numeric characters then it is a comment, continue to next line */
+        if(iscomment(line)) continue;
+        /* if there is a colon then there is a label: point to label, mnenomic, and operand */
+        if(colon) l = strtok(line, ":"), m = strtok(NULL, "\t "), o = strtok(NULL, "");
+        /* else point to mnemonic and operand */
+        else m = strtok(line, "\t "), o = strtok(NULL, "");
+        /* the label, l, is of no use; void it to stop the compiler's whining */
+        (void)l;
+        /* assemble the mnemonic and operand; catch any errors */
+        int error = assemble(m, o, labels, hexid);
+        /* if an error occured during assembly (error codes 1,2,3, etc) */
+        if(error)
         {
-            /* close buffer and reopen to save */
-            out = freopen(oname, "r", out);
-            char* tname = "tmp";
-            FILE* tout = fopen(tname, "w");
-            fprintf(tout, "1%X\n", eaddress);
-            /* transfer every line from the original file to tmp */
-            while(getline(&line, &len, out) != -1)
-                fputs(line, tout);
-            fclose(tout);
-            /* rename temp file to real */
-            rename(tname, oname);
+            /* then assembly failed; */
+            fail = 1;
+            /* and an error message indicating the specified error is thrown */
+            char* message = "unknown error code";
+            switch(error)
+            {
+                case 1: message = "unrecognizable operands"; break;
+                case 2: message = "label not found"; break;
+                case 3: message = "unsupported chip8 mnemonic"; break;
+            }
+            fprintf(stderr, "error: line %d: %s\n", linenumber, message);
         }
-        /* otherwise complain that the entry point is missing */
-        else
-            fprintf(stderr, "%s: error: missing %s entry point\n", iname, epoint);
-        /* if the compilation error flag is high then remove the assembled file - it's of no use */
-        if(cerror)
-            remove(oname);
     }
-    /* free heaped memory, go home */
-    fclose(in);
-    fclose(out);
+    /* clean up */
     free(line);
-    delt(list);
+    tree.delete(labels);
+    fclose(assem);
+    fclose(hexid);
+    /* delete the output .hex file if complilation failed */
+    if(fail) { remove(argv[2]); return 1; }
+    /* go home */
     return 0;
 }
