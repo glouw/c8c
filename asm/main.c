@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include "tree.h"
 #include "assemble.h"
-#include <assert.h>
 
 int main(int argc, char* argv[])
 {
@@ -79,7 +78,6 @@ int main(int argc, char* argv[])
     }
     /* clean up */
     free(line);
-    tree.print(labels);
     tree.delete(labels);
     fclose(assem);
     fclose(hexid);
