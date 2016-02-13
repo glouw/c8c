@@ -352,6 +352,15 @@ static int subn(char* o, tnode* labels, FILE* hexid)
     return 0;
 }
 
+/* exit program */
+static int end(char* o, tnode* labels, FILE* hexid)
+{
+    (void)o, (void)labels, (void)hexid;
+    /* exit */
+    fprintf(hexid, "00EF");
+    return 0;
+}
+
 /* exslusive or */
 static int xor(char* o, tnode* labels, FILE* hexid)
 {
@@ -366,16 +375,18 @@ static int xor(char* o, tnode* labels, FILE* hexid)
     return 0;
 }
 
-/* mnemonic functions */
 static int (*function[])(char* o, tnode* labels, FILE* hexid) =
-{
-    add, and, call, cls, drw, jp, ld, or, ret, rnd, se, shl,
-    shr, skp, sknp, sne, sub, subn, _uint, xor
+{ /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
+     add,  and,  call,  cls,  drw,  end,  jp,  ld,  or,  ret,  rnd,  se,  shl,  shr,  sknp,  skp,  sne,  sub,  subn, _uint,  xor
+};
+const char* const mnemonic[] =
+{ /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
+    "ADD","AND","CALL","CLS","DRW","END","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UINT","XOR"
 };
 
-static int execute(int (*fun)(char*, tnode*, FILE*), char* o, tnode* labels, FILE* hexid)
+static int execute(int (*_function)(char*,tnode*,FILE*), char* o, tnode* labels, FILE* hexid)
 {
-    return fun(o, labels, hexid);
+    return _function(o, labels, hexid);
 }
 
 /* for use with bsearch */
@@ -383,12 +394,6 @@ static int compare(const void* a, const void* b)
 {
     return strcmp((const char*)a, *(const char**)b);
 }
-
-/* supported chip8 mnemonics */
-const char* const mnemonic[] =
-{ /*   0     1      2     3     4    5    6    7     8     9   10    11    12     13    14    15    16     17     18    19 */
-    "ADD","AND","CALL","CLS","DRW","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UINT","XOR"
-};
 
 /* assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
 int assemble(char* m, char* o, tnode* labels, FILE* hexid)
@@ -398,9 +403,9 @@ int assemble(char* m, char* o, tnode* labels, FILE* hexid)
     const char* const* supported = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
     /* if 'm' is not supported return an error */
     if(!supported) return error = 3;
-    /* if the operand is missing and the operand is not CLS or RET then return "a missing operand" error */
+    /* if the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
     int index = supported - mnemonic;
-    if(o == NULL && (index != 3 && index != 8)) return error = 4;
+    if(o == NULL && (index != 3 && index != 5 && index != 9)) return error = 4;
     /* execute */
     error = execute(function[index], o, labels, hexid);
     /* ... and report any other errors */
