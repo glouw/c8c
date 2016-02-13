@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=gnu11
-OFLAGS = -Og -g
+OFLAGS = -Og -g -flto
 WFLAGS = -Wshadow -Wall -Wextra -pedantic
 
 OBJS = main.o tree.o assemble.o
@@ -21,7 +21,8 @@ assemble.o: assemble.[ch] tree.h Makefile
 clean:
 	rm -f $(PROJ)
 	rm -f $(OBJS)
-	rm -f analysis.txt
+	rm -f profile/*.profile
+	rm -f profile/overall.performance
 	rm -f gmon.out
 
 debug: $(PROJ)
@@ -31,7 +32,11 @@ debug: $(PROJ)
 	valgrind -q --tool=exp-sgcheck ./$(PROJ) MAIN.asm MAIN.hex
 	# function cycle check
 	rm -f callgrind*
-	valgrind --tool=callgrind ./$(PROJ) MAIN.asm MAIN.hex
-	callgrind_annotate callgrind* > analysis.txt
+	valgrind -q --tool=callgrind ./$(PROJ) MAIN.asm MAIN.hex
+	callgrind_annotate callgrind* main.c > profile/main.c
+	callgrind_annotate callgrind* tree.c > profile/tree.c
+	callgrind_annotate callgrind* assemble.c > profile/assemble.c
+	callgrind_annotate callgrind* > profile/overall.performance
 	rm -f callgrind*
-	less analysis.txt
+	cat MAIN.hex
+	cat profile/overall.performance | grep "PROGRAM TOTALS"

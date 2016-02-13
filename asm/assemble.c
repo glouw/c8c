@@ -11,7 +11,7 @@ static int _uint(char* o, tnode* labels, FILE* hexid)
     (void)labels;
     char* a = strtok(o, "\t ,");
     /* UINT */
-    if(strncmp(a,"0x",2)==0 && strlen(a+2)==4 &&
+    if(strlen(a)==6 && strncmp(a,"0x",2)==0 &&
        isxdigit(a[2]) &&
        isxdigit(a[3]) &&
        isxdigit(a[4]) &&
@@ -39,7 +39,7 @@ static int add(char* o, tnode* labels, FILE* hexid)
     /* ADD Vx, byte */
     else
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
-       strncmp(b,"0x",2)==0 && strlen(b+2)==2 &&
+       strlen(b)==4 && strncmp(b,"0x",2)==0 &&
        isxdigit(b[2]) &&
        isxdigit(b[3]))
            fprintf(hexid, "7%c%s", a[1], b+2);
@@ -330,7 +330,7 @@ static int sub(char* o, tnode* labels, FILE* hexid)
     (void)labels;
     char* a = strtok(o, "\t ,");
     char* b = strtok(NULL, "\t ,");
-    /* SUB Vx, Vy */ 
+    /* SUB Vx, Vy */
     if(strlen(a)==2 && a[0]=='V' && isxdigit(a[1]) &&
        strlen(b)==2 && b[0]=='V' && isxdigit(b[1]))
            fprintf(hexid, "8%c%c5", a[1], b[1]);
@@ -367,37 +367,43 @@ static int xor(char* o, tnode* labels, FILE* hexid)
 }
 
 /* mnemonic functions */
-static int (*mnemonicf[])(char* o, tnode* labels, FILE* hexid) =
+static int (*function[])(char* o, tnode* labels, FILE* hexid) =
 {
     add, and, call, cls, drw, jp, ld, or, ret, rnd, se, shl,
     shr, skp, sknp, sne, sub, subn, _uint, xor
 };
 
+static int execute(int (*fun)(char*, tnode*, FILE*), char* o, tnode* labels, FILE* hexid)
+{
+    return fun(o, labels, hexid);
+}
+
 /* for use with bsearch */
 static int compare(const void* a, const void* b)
 {
-    return strcmp((char*)a, *(char**)b);
+    return strcmp((const char*)a, *(const char**)b);
 }
+
+/* supported chip8 mnemonics */
+const char* const mnemonic[] =
+{ /*   0     1      2     3     4    5    6    7     8     9   10    11    12     13    14    15    16     17     18    19 */
+    "ADD","AND","CALL","CLS","DRW","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UINT","XOR"
+};
 
 /* assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
 int assemble(char* m, char* o, tnode* labels, FILE* hexid)
 {
-    /* suorted chip8 mnemonics */
-    char* mnemonic[] =
-    {
-        "ADD","AND","CALL","CLS","DRW","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP",
-        "SNE","SUB","SUBN","UINT","XOR"
-    };
-    /* binary search mnemonic[] for mnemonic m */
-    char** found = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
-    /* if mnemonic m is not found in mnemonic[] then return the "mnemonic not found" error number */
-    if(!found) return 3;
-    /* the mnemonic function that needs to be called is the index of the mnemonic array */
-    int (*_assemble)(char* o, tnode* labels, FILE* hexid) = mnemonicf[found-mnemonic];
-    /* if return 0 then all is well else a specific error occured */
-    int error = _assemble(o, labels, hexid);
-    /* a line will have been printed if there was no error so finish it with a newline char */
+    int error = 0;
+    /* check if 'm' is a supported mnemonic */
+    const char* const* supported = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
+    /* if 'm' is not supported return an error */
+    if(!supported) return error = 3;
+    /* if the operand is missing and the operand is not CLS or RET then return "a missing operand" error */
+    int index = supported - mnemonic;
+    if(o == NULL && (index != 3 && index != 8)) return error = 4;
+    /* execute */
+    error = execute(function[index], o, labels, hexid);
+    /* ... and report any other errors */
     if(!error) fputc('\n', hexid);
-    /* return the error code for highlevel handling */
     return error;
 }

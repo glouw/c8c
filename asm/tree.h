@@ -13,15 +13,15 @@ struct tnode
 /* namespace */
 struct tree
 {
-    /* creates a new tnode */
+    /* create new tnode */
     tnode* (*new)(const char* label, int address);
-    /* adds a tnode to a tree */
+    /* add tnode to tree */
     tnode* (*add)(tnode* labels, tnode* n);
-    /* gets a tnode from a tree */
+    /* get tnode from tree */
     tnode* (*get)(tnode* labels, const char* label);
-    /* deletes all the tnodes in a tree */
+    /* delete all tnodes in tree */
     void (*delete)(tnode* labels);
-    /* prints all the tnodes in a tree */
+    /* print tnodes in tree */
     void (*print)(tnode* labels);
 }
 const tree;
