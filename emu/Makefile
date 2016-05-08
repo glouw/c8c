@@ -1,16 +1,14 @@
-CC = gcc
-CFLAGS = -std=gnu11
-OFLAGS = -Og -g -flto
-WFLAGS = -Wshadow -Wall -Wextra -pedantic
-
+CC = gcc -std=c11
+CFLAGS = -Og -g -flto -Wshadow -Wall -Wextra -pedantic
+ 
 OBJS = main.o
 PROJ = emu
 
-$(PROJ) : $(OBJS)
-	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) $(OBJS) -o $(PROJ)
+$(PROJ): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(PROJ)
 
 main.o: main.c Makefile
-	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c main.c
+	$(CC) $(CFLAGS) -c main.c
 
 clean:
 	rm -f $(PROJ)

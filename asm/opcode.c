@@ -3,10 +3,10 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include "tree.h"
-#include "assemble.h"
+#include "opcode.h"
 
 /* unsigned int (data type) */
-static int _uint(char* o, tnode* labels, FILE* hexid)
+static int _uint(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -22,7 +22,7 @@ static int _uint(char* o, tnode* labels, FILE* hexid)
 }
 
 /* addition */
-static int add(char* o, tnode* labels, FILE* hexid)
+static int add(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -48,7 +48,7 @@ static int add(char* o, tnode* labels, FILE* hexid)
 }
 
 /* bitwise and */
-static int and(char* o, tnode* labels, FILE* hexid)
+static int and(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -62,10 +62,10 @@ static int and(char* o, tnode* labels, FILE* hexid)
 }
 
 /* call subroutine */
-static int call(char* o, tnode* labels, FILE* hexid)
+static int call(char* o, node* labels, FILE* hexid)
 {
     char* a = strtok(o, "\t ,");
-    tnode* found = tree.get(labels, a);
+    node* found = tree.get(labels, a);
     /* CALL ad */
     if(found)
         fprintf(hexid, "2%03X", found->address);
@@ -74,7 +74,7 @@ static int call(char* o, tnode* labels, FILE* hexid)
 }
 
 /* clear display */
-static int cls(char* o, tnode* labels, FILE* hexid)
+static int cls(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)hexid, (void)labels;
     /* CLS */
@@ -83,7 +83,7 @@ static int cls(char* o, tnode* labels, FILE* hexid)
 }
 
 /* draw sprite */
-static int drw(char* o, tnode* labels, FILE* hexid)
+static int drw(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -99,9 +99,9 @@ static int drw(char* o, tnode* labels, FILE* hexid)
 }
 
 /* jump */
-static int jp(char* o, tnode* labels, FILE* hexid)
+static int jp(char* o, node* labels, FILE* hexid)
 {
-    tnode* found;
+    node* found;
     char* a = strtok(o, "\t ,");
     char* b = strtok(NULL, "\t ,");
     /* JP V0, ad */
@@ -117,9 +117,9 @@ static int jp(char* o, tnode* labels, FILE* hexid)
 }
 
 /* load */
-static int ld(char* o, tnode* labels, FILE* hexid)
+static int ld(char* o, node* labels, FILE* hexid)
 {
-    tnode* found;
+    node* found;
     char* a = strtok(o, "\t ,");
     char* b = strtok(NULL, "\t ,");
     /* LD DT, Vx */
@@ -192,7 +192,7 @@ static int ld(char* o, tnode* labels, FILE* hexid)
 }
 
 /* bitwise or */
-static int or(char* o, tnode* labels, FILE* hexid)
+static int or(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -206,7 +206,7 @@ static int or(char* o, tnode* labels, FILE* hexid)
 }
 
 /* return from subroutine */
-static int ret(char* o, tnode* labels, FILE* hexid)
+static int ret(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)hexid, (void)labels;
     /* RET */
@@ -215,7 +215,7 @@ static int ret(char* o, tnode* labels, FILE* hexid)
 }
 
 /* random number with mask */
-static int rnd(char* o, tnode* labels, FILE* hexid)
+static int rnd(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -231,7 +231,7 @@ static int rnd(char* o, tnode* labels, FILE* hexid)
 }
 
 /* skip instruction if... */
-static int se(char* o, tnode* labels, FILE* hexid)
+static int se(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -252,7 +252,7 @@ static int se(char* o, tnode* labels, FILE* hexid)
 }
 
 /* shift left */
-static int shl(char* o, tnode* labels, FILE* hexid)
+static int shl(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -266,7 +266,7 @@ static int shl(char* o, tnode* labels, FILE* hexid)
 }
 
 /* shift right */
-static int shr(char* o, tnode* labels, FILE* hexid)
+static int shr(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -280,7 +280,7 @@ static int shr(char* o, tnode* labels, FILE* hexid)
 }
 
 /* skip instruction if keypress */
-static int skp(char* o, tnode* labels, FILE* hexid)
+static int skp(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -292,7 +292,7 @@ static int skp(char* o, tnode* labels, FILE* hexid)
 }
 
 /* do not skip instruction if keypress */
-static int sknp(char* o, tnode* labels, FILE* hexid)
+static int sknp(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -304,7 +304,7 @@ static int sknp(char* o, tnode* labels, FILE* hexid)
 }
 
 /* do not skip instruction if... */
-static int sne(char* o, tnode* labels, FILE* hexid)
+static int sne(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -325,7 +325,7 @@ static int sne(char* o, tnode* labels, FILE* hexid)
 }
 
 /* subtract */
-static int sub(char* o, tnode* labels, FILE* hexid)
+static int sub(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -339,7 +339,7 @@ static int sub(char* o, tnode* labels, FILE* hexid)
 }
 
 /* reverse subtract */
-static int subn(char* o, tnode* labels, FILE* hexid)
+static int subn(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -353,7 +353,7 @@ static int subn(char* o, tnode* labels, FILE* hexid)
 }
 
 /* exit program */
-static int end(char* o, tnode* labels, FILE* hexid)
+static int end(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)labels, (void)hexid;
     /* exit */
@@ -362,7 +362,7 @@ static int end(char* o, tnode* labels, FILE* hexid)
 }
 
 /* exslusive or */
-static int xor(char* o, tnode* labels, FILE* hexid)
+static int xor(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
@@ -375,40 +375,41 @@ static int xor(char* o, tnode* labels, FILE* hexid)
     return 0;
 }
 
-static int (*function[])(char* o, tnode* labels, FILE* hexid) =
+static int (*function[])(char* o, node* labels, FILE* hexid) =
 { /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
      add,  and,  call,  cls,  drw,  end,  jp,  ld,  or,  ret,  rnd,  se,  shl,  shr,  sknp,  skp,  sne,  sub,  subn, _uint,  xor
 };
-const char* const mnemonic[] =
+static char* mnemonic[] =
 { /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
     "ADD","AND","CALL","CLS","DRW","END","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UINT","XOR"
 };
 
-static int execute(int (*_function)(char*,tnode*,FILE*), char* o, tnode* labels, FILE* hexid)
+static int execute(int (*_function)(char*,node*,FILE*), char* o, node* labels, FILE* hexid)
 {
     return _function(o, labels, hexid);
 }
 
-/* for use with bsearch */
+/* bsearch */
 static int compare(const void* a, const void* b)
 {
-    return strcmp((const char*)a, *(const char**)b);
+    return strcmp((char*)a, *(char**)b);
 }
 
 /* assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
-int assemble(char* m, char* o, tnode* labels, FILE* hexid)
+static int assemble(char* m, char* o, node* labels, FILE* hexid)
 {
-    int error = 0;
     /* check if 'm' is a supported mnemonic */
-    const char* const* supported = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
+    char** supported = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
     /* if 'm' is not supported return an error */
-    if(!supported) return error = 3;
+    if(!supported) return 3;
     /* if the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
     int index = supported - mnemonic;
-    if(o == NULL && (index != 3 && index != 5 && index != 9)) return error = 4;
+    if(o == NULL && (index != 3 && index != 5 && index != 9)) return 4;
     /* execute */
-    error = execute(function[index], o, labels, hexid);
-    /* ... and report any other errors */
+    int error = execute(function[index], o, labels, hexid);
+    /* report any other errors */
     if(!error) fputc('\n', hexid);
     return error;
 }
+
+const struct opcode opcode = { assemble };

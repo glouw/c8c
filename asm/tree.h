@@ -1,27 +1,20 @@
 #pragma once
 
-/* tree node data type */
-typedef struct tnode tnode;
-struct tnode
+typedef struct node node;
+struct node
 {
-    char* label;
+    char* token;
     int address;
-    tnode* less;
-    tnode* more;
+    node* less;
+    node* more;
 };
 
-/* namespace */
 struct tree
 {
-    /* create new tnode */
-    tnode* (*new)(const char* label, int address);
-    /* add tnode to tree */
-    tnode* (*add)(tnode* labels, tnode* n);
-    /* get tnode from tree */
-    tnode* (*get)(tnode* labels, const char* label);
-    /* delete all tnodes in tree */
-    void (*delete)(tnode* labels);
-    /* print tnodes in tree */
-    void (*print)(tnode* labels);
+    node* (*new)(char* token, int address);  // create new node
+    node* (*add)(node* labels, node* n);     // add node to tree
+    node* (*get)(node* labels, char* token); // get node from tree
+    void (*delete)(node* labels);            // delete all nodes in tree
+    void (*print)(node* labels);             // print nodes in tree */
 }
 const tree;

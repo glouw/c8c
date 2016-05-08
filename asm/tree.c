@@ -1,63 +1,56 @@
-/*
- *  Modified Binary Tree
- *  The Practice of Programming
- *  Brian W. Kernighan
- *  Rob Pike
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "tree.h"
 
-/* create new tnode */
-static tnode* new(const char* label, int address)
+/* create new node */
+static node* new(char* token, int address)
 {
-    tnode* n = malloc(sizeof(tnode));
-    n->label = strdup(label);
+    node* n = malloc(sizeof(node));
+    n->token = strdup(token);
     n->address = address;
     n->less = NULL;
     n->more = NULL;
     return n;
 }
 
-/* add tnode to labels */
-static tnode* add(tnode* labels, tnode* n)
+/* add node to labels */
+static node* add(node* labels, node* n)
 {
     if(labels == NULL) return n;
-    int cmp = strcmp(n->label, labels->label);
-    if(cmp == 0); /* do nothing */
+    int cmp = strcmp(n->token, labels->token);
+    if(cmp == 0); // do nothing
     else if(cmp < 0) labels->less = add(labels->less, n);
     else labels->more = add(labels->more, n);
     return labels;
 }
 
-/* get tnode from labels */
-static tnode* get(tnode* labels, const char* label)
+/* get node from labels */
+static node* get(node* labels, char* token)
 {
     if(labels == NULL) return NULL;
-    int cmp = strcmp(label, labels->label);
+    int cmp = strcmp(token, labels->token);
     if(cmp == 0) return labels;
-    else if(cmp < 0) return get(labels->less, label);
-    else return get(labels->more, label);
+    else if(cmp < 0) return get(labels->less, token);
+    else return get(labels->more, token);
 }
 
-/* delete all tnodes in labels */
-static void delete(tnode* labels)
+/* delete all nodes in labels */
+static void delete(node* labels)
 {
     if(labels == NULL) return;
     delete(labels->less);
     delete(labels->more);
-    free(labels->label);
+    free(labels->token);
     free(labels);
 }
 
-/* print all tnodes in labels */
-static void print(tnode* labels)
+/* print all nodes in labels */
+static void print(node* labels)
 {
     if(labels == NULL) return;
     print(labels->less);
-    printf("%04X: %s\n", labels->address, labels->label);
+    printf("%04X: %s\n", labels->address, labels->token);
     print(labels->more);
 }
 
