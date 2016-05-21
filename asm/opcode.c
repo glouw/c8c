@@ -5,12 +5,12 @@
 #include "tree.h"
 #include "opcode.h"
 
-/* unsigned int (data type) */
-static int _uint(char* o, node* labels, FILE* hexid)
+/* Unsigned word (data type) */
+static int _uword(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
     char* a = strtok(o, "\t ,");
-    /* UINT */
+    /* UWORD */
     if(strlen(a)==6 && strncmp(a,"0x",2)==0 &&
        isxdigit(a[2]) &&
        isxdigit(a[3]) &&
@@ -21,7 +21,7 @@ static int _uint(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* addition */
+/* Addition (+) */
 static int add(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -47,7 +47,7 @@ static int add(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* bitwise and */
+/* Bitwise and (&) */
 static int and(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -61,7 +61,7 @@ static int and(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* call subroutine */
+/* Call subroutine */
 static int call(char* o, node* labels, FILE* hexid)
 {
     char* a = strtok(o, "\t ,");
@@ -73,7 +73,7 @@ static int call(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* clear display */
+/* Clear display */
 static int cls(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)hexid, (void)labels;
@@ -82,7 +82,7 @@ static int cls(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* draw sprite */
+/* Draw sprite */
 static int drw(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -98,7 +98,7 @@ static int drw(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* jump */
+/* Jump */
 static int jp(char* o, node* labels, FILE* hexid)
 {
     node* found;
@@ -116,7 +116,7 @@ static int jp(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* load */
+/* Load */
 static int ld(char* o, node* labels, FILE* hexid)
 {
     node* found;
@@ -191,7 +191,7 @@ static int ld(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* bitwise or */
+/* Bitwise or (|) */
 static int or(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -205,7 +205,7 @@ static int or(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* return from subroutine */
+/* Return from subroutine */
 static int ret(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)hexid, (void)labels;
@@ -214,7 +214,7 @@ static int ret(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* random number with mask */
+/* Random number with mask */
 static int rnd(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -230,7 +230,7 @@ static int rnd(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* skip instruction if... */
+/* Skip instruction if equal */
 static int se(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -251,7 +251,7 @@ static int se(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* shift left */
+/* Shift left */
 static int shl(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -265,7 +265,7 @@ static int shl(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* shift right */
+/* Shift right */
 static int shr(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -279,7 +279,7 @@ static int shr(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* skip instruction if keypress */
+/* Skip instruction if keypress equal */
 static int skp(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -291,7 +291,7 @@ static int skp(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* do not skip instruction if keypress */
+/* Skip instruction if keypress not equal */
 static int sknp(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -303,7 +303,7 @@ static int sknp(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* do not skip instruction if... */
+/* Skip instruction if not equal */
 static int sne(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -324,7 +324,7 @@ static int sne(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* subtract */
+/* Subtract (-) */
 static int sub(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -338,7 +338,7 @@ static int sub(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* reverse subtract */
+/* Inverse subtract */
 static int subn(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -352,7 +352,7 @@ static int subn(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* exit program */
+/* Exit program */
 static int end(char* o, node* labels, FILE* hexid)
 {
     (void)o, (void)labels, (void)hexid;
@@ -361,7 +361,7 @@ static int end(char* o, node* labels, FILE* hexid)
     return 0;
 }
 
-/* exslusive or */
+/* Exslusive or (^) */
 static int xor(char* o, node* labels, FILE* hexid)
 {
     (void)labels;
@@ -376,12 +376,12 @@ static int xor(char* o, node* labels, FILE* hexid)
 }
 
 static int (*function[])(char* o, node* labels, FILE* hexid) =
-{ /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
-     add,  and,  call,  cls,  drw,  end,  jp,  ld,  or,  ret,  rnd,  se,  shl,  shr,  sknp,  skp,  sne,  sub,  subn, _uint,  xor
+{ /*   0     1      2     3     4     5    6    7    8     9    10   11    12    13     14    15    16    17     18      19    20  */
+     add,  and,  call,  cls,  drw,  end,  jp,  ld,  or,  ret,  rnd,  se,  shl,  shr,  sknp,  skp,  sne,  sub,  subn, _uword,  xor
 };
 static char* mnemonic[] =
-{ /*   0     1      2     3     4     5    6    7    8     9   10    11    12     13    14    15    16     17    18     19    20  */
-    "ADD","AND","CALL","CLS","DRW","END","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UINT","XOR"
+{ /*   0     1      2     3     4     5    6    7    8     9    10   11    12    13     14    15    16    17     18      19    20  */
+    "ADD","AND","CALL","CLS","DRW","END","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","UWORD","XOR"
 };
 
 static int execute(int (*_function)(char*,node*,FILE*), char* o, node* labels, FILE* hexid)
@@ -389,25 +389,26 @@ static int execute(int (*_function)(char*,node*,FILE*), char* o, node* labels, F
     return _function(o, labels, hexid);
 }
 
-/* bsearch */
+/* Bsearch callback */
 static int compare(const void* a, const void* b)
 {
     return strcmp((char*)a, *(char**)b);
 }
 
-/* assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
+/* Assembles given a mnemonic m, an operand o, a label tree, and an output file; returns error code */
 static int assemble(char* m, char* o, node* labels, FILE* hexid)
 {
-    /* check if 'm' is a supported mnemonic */
-    char** supported = bsearch(m, mnemonic, sizeof(mnemonic)/sizeof(char*), sizeof(char*), compare);
-    /* if 'm' is not supported return an error */
+    /* Check if 'm' is a supported mnemonic */
+    #define len(mnemonic) sizeof(mnemonic)/sizeof(*mnemonic)
+    char** supported = bsearch(m, mnemonic, len(mnemonic), sizeof(char*), compare);
+    /* If 'm' is not supported return an error */
     if(!supported) return 3;
-    /* if the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
+    /* If the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
     int index = supported - mnemonic;
     if(o == NULL && (index != 3 && index != 5 && index != 9)) return 4;
-    /* execute */
+    /* Execute */
     int error = execute(function[index], o, labels, hexid);
-    /* report any other errors */
+    /* Report any other errors */
     if(!error) fputc('\n', hexid);
     return error;
 }

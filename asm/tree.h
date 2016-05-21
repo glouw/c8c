@@ -11,10 +11,15 @@ struct node
 
 struct tree
 {
-    node* (*new)(char* token, int address);  // create new node
-    node* (*add)(node* labels, node* n);     // add node to tree
-    node* (*get)(node* labels, char* token); // get node from tree
-    void (*delete)(node* labels);            // delete all nodes in tree
-    void (*print)(node* labels);             // print nodes in tree */
+    /* Creates a new node on the heap */
+    node* (*new)(char* token, int address); 
+    /* Adds a node to the tree */
+    node* (*add)(node* nodes, node* new);
+    /* Gets a node from the tree */
+    node* (*get)(node* nodes, char* token);
+    /* Frees the entire tree from heap */
+    void (*burn)(node* nodes);
+    /* Prints tree to stdout */
+    void (*print)(node* nodes);
 }
 const tree;

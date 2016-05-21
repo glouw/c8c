@@ -1,11 +1,11 @@
 ; Description:
-;   Tests all mnemonics with syntax
+;   Tests all mnemonics with crazy syntaxing
 
-VARIABLE: UINT 0x1000
-ARRAY:  UINT  0x1000
-          UINT    0x0001
+VARIABLE: UWORD 0x1000
+ARRAY:  UWORD 0x1000
+          UWORD 0x0001
 MAIN:   ;notice how tabs don't really matter
-CLS NOW
+CLS
 RET
 JP MAIN NOW
  CALL  MAIN
