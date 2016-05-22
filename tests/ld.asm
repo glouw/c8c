@@ -9,7 +9,23 @@ LIST: UWORD 0x0000    ; V0, V1
       UWORD 0x0000    ; VA. VB
       UWORD 0x0000    ; VC, VD
       UWORD 0x0000    ; VE, VF
-MAIN: LD  V0,  0x0F  ; 0x0F
+MAIN: LD  V0,  K      ; Keyboard input
+      LD  V1,  K      ; Keyboard input
+      LD  V2,  K      ; Keyboard input
+      LD  V3,  K      ; Keyboard input
+      LD  V4,  K      ; Keyboard input
+      LD  V5,  K      ; Keyboard input
+      LD  V6,  K      ; Keyboard input
+      LD  V7,  K      ; Keyboard input
+      LD  V8,  K      ; Keyboard input
+      LD  V9,  K      ; Keyboard input
+      LD  VA,  K      ; Keyboard input
+      LD  VB,  K      ; Keyboard input
+      LD  VC,  K      ; Keyboard input
+      LD  VD,  K      ; Keyboard input
+      LD  VE,  K      ; Keyboard input
+      LD  VF,  K      ; Keyboard input
+      LD  V0,  0x0F  ; 0x0F
       LD  V1,  V0    ; 0x0F
       LD  DT,  V1    ; 0x0F
       LD  V2,  DT    ; 0x0E because decrement via cycle

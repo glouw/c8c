@@ -1,5 +1,7 @@
 ; Description:
 ;   Tests the "jump to label" (JP) mnemonic
 
-MAIN: JP MAIN
-      END
+MAIN:   LD V0, 0x04
+        JP THERE
+        END
+THERE:  JP V0, MAIN

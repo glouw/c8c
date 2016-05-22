@@ -1,5 +1,5 @@
 CC = gcc -std=c11
-CFLAGS = -Og -g -flto -Wshadow -Wall -Wextra -pedantic
+CFLAGS = -Og -g -flto -Wshadow -Wall -Wextra -pedantic -lncurses
  
 OBJS = main.o
 PROJ = emu
