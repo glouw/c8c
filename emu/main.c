@@ -129,7 +129,7 @@ void output(void)
         pixel ?
             color_set(1, NULL):
             color_set(2, NULL);
-        addstr(" ");
+        addstr("  ");
     }
     color_set(3, NULL);
     addch('\n');
@@ -162,7 +162,7 @@ void cycle(void)
     if(st) beep();
     exec(list[op >> 12]);
     output();
-    napms(10);
+    napms(16); /* ~60 Hz */
 }
 
 void load(char* str)

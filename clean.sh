@@ -1,3 +1,8 @@
+#
+# clean.sh
+#   Cleans the workspace
+#
+
 make clean -s -C asm
 make clean -s -C emu
 
