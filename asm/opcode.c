@@ -402,14 +402,17 @@ static int assemble(char* m, char* o, node* labels, FILE* hexid)
     #define len(mnemonic) sizeof(mnemonic)/sizeof(*mnemonic)
     char** supported = bsearch(m, mnemonic, len(mnemonic), sizeof(char*), compare);
     /* If 'm' is not supported return an error */
-    if(!supported) return 3;
+    if(!supported)
+        return 3;
     /* If the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
     int index = supported - mnemonic;
-    if(o == NULL && (index != 3 && index != 5 && index != 9)) return 4;
+    if(o == NULL && (index != 3 && index != 5 && index != 9))
+        return 4;
     /* Execute */
     int error = execute(function[index], o, labels, hexid);
     /* Report any other errors */
-    if(!error) fputc('\n', hexid);
+    if(!error)
+        fputc('\n', hexid);
     return error;
 }
 

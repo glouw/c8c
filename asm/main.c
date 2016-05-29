@@ -5,24 +5,27 @@
 #include "tree.h"
 #include "opcode.h"
 
-/* Error message colors */
+/* Error messages */
 #define RED "\x1b[31m"
 #define NRM "\x1b[0m"
 
-/* Get psyched! */
 int main(int argc, char* argv[])
 {
-    if(argc != 3) return 1;
+    if(argc != 3)
+        return 1;
     char* fr = argv[1];
     char* fw = argv[2];
     FILE* assem = fopen(fr, "r");
-    if(assem == NULL) return 1;
+    if(assem == NULL)
+    {
+        fprintf(stderr, RED"error: "NRM"file %s not found\n", fr);
+        return 1;
+    }
     FILE* hexid = fopen(fw, "w");
     /* First scan: Gather labels */
     node* labels = NULL;
-    unsigned address = 0x0202;
-    char* line = NULL; unsigned len = 0;
-    unsigned linenumber = 0, fail = 0;
+    char* line = NULL;
+    unsigned address = 0x0202, len = 0, linenumber = 0, fail = 0;
     while(getline(&line, &len, assem) != -1)
     {
         linenumber += 1;
@@ -96,6 +99,7 @@ int main(int argc, char* argv[])
     tree.burn(labels);
     fclose(assem);
     fclose(hexid);
-    if(fail) remove(fw);
+    if(fail)
+        remove(fw);
     return fail;
 }
