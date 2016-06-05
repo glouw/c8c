@@ -1,28 +1,42 @@
-data:
-    DB 0x01 ;202
-    DB 0x02
-    DB 0x03 ;204
-    DB 0x04
-; main function
-main:
-    ld I, 0x200 ; 206
-    ld I, 0x200 ; 208
-    ld I, 0x200 ; 20A
-;
+array:
+    DB   filler, more_filler ; 202
+    DB   filler, more_filler
+    DB   filler, more_filler ; 204
+    DB   filler, more_filler
+    DB   filler, more_filler ; 206
+    DB   filler, more_filler
 
     ;
 
+    ;
+    ;
+    ;
+    ;
+    ;;
+
+    ;; :::
 
 
+            ; ::
 
-
-        ;
-            ; :
-
-    ; :
-                ; :
-                            ; :
-there:          ; 20C
-    ld I, 0x202
-there:
-    ld I, 0x200
+main:
+    ADD  filler, more_filler ; 208
+    AND  filler, more_filler
+    CALL filler, more_filler
+    CLS  filler, more_filler
+    DRW  filler, more_filler
+    END  filler, more_filler
+    JP   filler, more_filler
+    LD   filler, more_filler
+    OR   filler, more_filler
+    RET  filler, more_filler
+    RND  filler, more_filler
+    SE   filler, more_filler
+    SHL  filler, more_filler
+    SHR  filler, more_filler
+    SKNP filler, more_filler
+    SKP  filler, more_filler
+    SNE  filler, more_filler
+    SUB  filler, more_filler
+    SUBN filler, more_filler
+    XOR  filler, more_filler

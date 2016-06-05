@@ -29,7 +29,7 @@ static struct node* new(char* name, unsigned address)
     return node;
 }
 
-static struct node* add(struct node* tree, struct node* node)
+static struct node* insert(struct node* tree, struct node* node)
 {
     if(tree == NULL)
         return node;
@@ -43,9 +43,9 @@ static struct node* add(struct node* tree, struct node* node)
         free(node);
     }
     else if(difference < 0)
-        tree->left = add(tree->left, node);
+        tree->left = insert(tree->left, node);
     else
-        tree->rite = add(tree->rite, node);
+        tree->rite = insert(tree->rite, node);
     return tree;
 }
 
@@ -77,13 +77,190 @@ static void print(struct node* tree)
     if(tree == NULL)
         return;
     print(tree->left);
-    printf("%04X: %s\n", tree->address, tree->name);
+    fprintf(stderr, "%04X: %s\n", tree->address, tree->name);
     print(tree->rite);
 }
 
-static struct node* grow(void)
+static int add(char* operation, char* operand, struct node* tree)
 {
-    struct node* tree = NULL;
+    fprintf(hexidecimal, "ADD");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int and(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "AND");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int call(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "CALL");
+    (void)operation, (void)operand, (void)tree;
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int cls(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "CLS");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int db(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "DB");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int drw(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "DRW");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int end(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "END");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int jp(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "JP");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int ld(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "LD");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int or(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "OR");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int ret(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "RET");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int rnd(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "RND");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int se(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SE");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int shl(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SHL");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int shr(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SHR");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int sknp(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SKNP");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int skp(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SKP");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int sne(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SNE");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int sub(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SUB");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int subn(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "SUBN");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+static int xor(char* operation, char* operand, struct node* tree)
+{
+    fprintf(hexidecimal, "XOR");
+    (void)operation, (void)operand, (void)tree;
+    return 0;
+}
+
+#define OPS 21
+static int (*const functions[OPS])(char* operation, char* operand, struct node* tree) =
+{
+    add, and, call, cls, db, drw, end, jp, ld, or, ret, rnd, se, shl, shr, sknp, skp, sne, sub, subn, xor
+};
+
+static char* const operations[OPS] = 
+{
+    "ADD","AND","CALL","CLS","DB","DRW","END","JP","LD","OR","RET","RND","SE","SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","XOR"
+};
+
+int compare(const void* a, const void* b)
+{
+    return strcmp((char*)a, *(char**)b);
+}
+
+void assemble(char* operation, char* operand, struct node* tree)
+{
+    fprintf(stderr, "%s\n", operation);
+    char** found = (char**)bsearch(operation, operations, OPS, sizeof(char*), compare);
+    int index = found - operations;
+    int error = (*functions[index])(operation, operand, tree);
+    fprintf(hexidecimal, "\n");
+    if(!error) { }
+}
+
+enum pass
+{
+    first, second
+};
+static struct node* scan(struct node* tree, enum pass pass)
+{
     unsigned size = 0;
     unsigned address = 0x0202;
     linenumber = 1;
@@ -106,14 +283,22 @@ static struct node* grow(void)
         if(colon)
         {
             label = strtok(line, ":");
-            tree = add(tree, new(label, address));
+            if(pass == first)
+                tree = insert(tree, new(label, address));
         }
         operation = strtok(colon ? NULL : line, "\t ");
-        operand = strtok(NULL, "\n");
-        if(operation && operand && strcmp(operation, "DB") == 0)
-            address += 0x0001;
-        else if(operation)
-            address += 0x0002;
+        operand = strtok(NULL, "\t \n");
+        if(operation)
+        {
+            if(pass == first)
+            {
+                if(strcmp(operation, "DB") == 0)
+                    address += 0x0001;
+                else
+                    address += 0x0002;
+            }
+            else assemble(operation, operand, tree);
+        }
         linenumber += 1;
     }
     free(line);
@@ -137,20 +322,20 @@ int main(int argc, char* argv[])
     output = argv[2];
     hexidecimal = fopen(output, "w");
     /* First pass */
-    struct node* tree = grow();
-    print(tree);
+    struct node* tree = scan(NULL, first);
     /* Second pass */
+    rewind(assembly);
+    scan(tree, second);
     /* Cleanup */
+    print(tree);
     burn(tree);
     fclose(assembly);
     fclose(hexidecimal);
     if(fail)
     {
-        fprintf(stderr, "Assembly failed...\n");
         remove(output);
         return 1;
     }
-    fprintf(stderr, "Assembly success!\n");
     return 0;
 }
 
@@ -220,14 +405,7 @@ int main(int argc, char* argv[])
 //    return 0;
 //}
 //
-///* Clear display */
-//int cls(char* operand, node* tree, FILE* hexidecimal)
-//{
-//    (void)o, (void)hexidecimal, (void)tree;
-//    /* CLS */
-//    fprintf(hexidecimal, "00E0");
-//    return 0;
-//}
+
 //
 ///* Draw sprite */
 //int drw(char* operand, node* tree, FILE* hexidecimal)
@@ -535,32 +713,13 @@ int main(int argc, char* argv[])
 //    return _function(o, tree, hexidecimal);
 //}
 //
+//
 ///* Bsearch callback */
 //int compare(const void* a, const void* b)
 //{
 //    return strcmp((char*)a, *(char**)b);
 //}
 //
-///* Assembles given a mnemonic m, an operand o, a name tree, and an output file; returns error code */
-//int assemble(char* m, char* operand, node* tree, FILE* hexidecimal)
-//{
-//    /* Check if 'm' is a supported mnemonic */
-//    #define len(mnemonic) sizeof(mnemonic)/sizeof(*mnemonic)
-//    char** supported = bsearch(m, mnemonic, len(mnemonic), sizeof(char*), compare);
-//    /* If 'm' is not supported return an error */
-//    if(!supported)
-//        return 3;
-//    /* If the operand is missing and the operand is not CLS, END, or RET then return "a missing operand" error */
-//    int index = supported - mnemonic;
-//    if(o == NULL && (index != 3 && index != 5 && index != 9))
-//        return 4;
-//    /* Execute */
-//    int error = execute(function[index], o, tree, hexidecimal);
-//    /* Report any other errors */
-//    if(!error)
-//        fputc('\n', hexidecimal);
-//    return error;
-//}
 //int main(int argc, char* argv[])
 //{
 //    if(argc != 3)
