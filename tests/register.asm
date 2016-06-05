@@ -3,38 +3,70 @@
 ;       Tests all registers opcodes
 
 REGISTER:
-    UWORD 0x0000 ;  r
-    UWORD 0x7C66 ;
-    UWORD 0x6060 ;
-    UWORD 0x6000 ;
-    UWORD 0x0000 ;  e
-    UWORD 0x3C66 ;
-    UWORD 0x7E60 ;
-    UWORD 0x3C00 ;
-    UWORD 0x0000 ;  g
-    UWORD 0x3E66 ;
-    UWORD 0x663E ;
-    UWORD 0x067C ;
-    UWORD 0x0018 ;  i
-    UWORD 0x0038 ;
-    UWORD 0x1818 ;
-    UWORD 0x3C00 ;
-    UWORD 0x0000 ;  s
-    UWORD 0x3E60 ;
-    UWORD 0x3C06 ;
-    UWORD 0x7C00 ;
-    UWORD 0x0018 ;  t
-    UWORD 0x7E18 ;
-    UWORD 0x1818 ;
-    UWORD 0x0E00 ;
-    UWORD 0x0000 ;  e
-    UWORD 0x3C66 ;
-    UWORD 0x7E60 ;
-    UWORD 0x3C00 ;
-    UWORD 0x0000 ;  r
-    UWORD 0x7C66 ;
-    UWORD 0x6060 ;
-    UWORD 0x6000 ;
+    UBYTE 0x00 ; r
+    UBYTE 0x00
+    UBYTE 0x7C
+    UBYTE 0x66 ;
+    UBYTE 0x60
+    UBYTE 0x60 ;
+    UBYTE 0x60
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x00 ;  e
+    UBYTE 0x3C
+    UBYTE 0x66 ;
+    UBYTE 0x7E
+    UBYTE 0x60 ;
+    UBYTE 0x3C
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x00 ;  g
+    UBYTE 0x3E
+    UBYTE 0x66 ;
+    UBYTE 0x66
+    UBYTE 0x3E ;
+    UBYTE 0x06
+    UBYTE 0x7C ;
+    UBYTE 0x00
+    UBYTE 0x18 ;  i
+    UBYTE 0x00
+    UBYTE 0x38 ;
+    UBYTE 0x18
+    UBYTE 0x18 ;
+    UBYTE 0x3C
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x00 ;  s
+    UBYTE 0x3E
+    UBYTE 0x60 ;
+    UBYTE 0x3C
+    UBYTE 0x06 ;
+    UBYTE 0x7C
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x18 ;  t
+    UBYTE 0x7E
+    UBYTE 0x18 ;
+    UBYTE 0x18
+    UBYTE 0x18 ;
+    UBYTE 0x0E
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x00 ;  e
+    UBYTE 0x3C
+    UBYTE 0x66 ;
+    UBYTE 0x7E
+    UBYTE 0x60 ;
+    UBYTE 0x3C
+    UBYTE 0x00 ;
+    UBYTE 0x00
+    UBYTE 0x00 ;  r
+    UBYTE 0x7C
+    UBYTE 0x66 ;
+    UBYTE 0x60
+    UBYTE 0x60 ;
+    UBYTE 0x60
+    UBYTE 0x00 ;
 OKAY:
     UWORD 0x3C30 ;  [
     UWORD 0x3030 ;
@@ -132,10 +164,10 @@ MAIN:
     LD V2, 0x08     ; String length
     CALL   PRINT
     ; Print status
-    LD  I, FAIL ; String
-    LD V0, 0x00 ; x
-    LD V1, 0x08 ; y
-    LD V2, 0x08 ; String Length
+    LD  I, FAIL     ; String
+    LD V0, 0x00     ; x
+    LD V1, 0x08     ; y
+    LD V2, 0x08     ; String length
     CALL   PRINT
     ; Push any key to exit
     LD VF, K
