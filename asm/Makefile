@@ -9,7 +9,7 @@ PROJ = asm
 $(PROJ) : $(OBJS)
 	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) $(OBJS) -o $(PROJ)
 
-main.o: main.c
+main.o: main.c Makefile
 	$(CC) $(CFLAGS) $(OFLAGS) $(WFLAGS) -c main.c
 
 clean:

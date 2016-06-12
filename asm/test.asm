@@ -1,42 +1,24 @@
-array:
-    DB   filler, more_filler ; 202
-    DB   filler, more_filler
-    DB   filler, more_filler ; 204
-    DB   filler, more_filler
-    DB   filler, more_filler ; 206
-    DB   filler, more_filler
+DATA:
+    DB 0xAB ;202
+    ; comment
+; comment
 
-    ;
-
-    ;
-    ;
-    ;
-    ;
-    ;;
-
-    ;; :::
-
-
-            ; ::
-
-main:
-    ADD  filler, more_filler ; 208
-    AND  filler, more_filler
-    CALL filler, more_filler
-    CLS  filler, more_filler
-    DRW  filler, more_filler
-    END  filler, more_filler
-    JP   filler, more_filler
-    LD   filler, more_filler
-    OR   filler, more_filler
-    RET  filler, more_filler
-    RND  filler, more_filler
-    SE   filler, more_filler
-    SHL  filler, more_filler
-    SHR  filler, more_filler
-    SKNP filler, more_filler
-    SKP  filler, more_filler
-    SNE  filler, more_filler
-    SUB  filler, more_filler
-    SUBN filler, more_filler
-    XOR  filler, more_filler
+MAIN:
+    ADD VE, VF  ; comment 203
+    ADD I, VF   ; 205
+    ADD V0, 0xFF;207
+    AND V0, V1              ; comment 209
+    CALL MAIN   ; 20B
+    DRW V0, V1, 0xA ;20D
+TH: JP MAIN ;20F
+    LD DT, VF
+    LD ST, VF
+    LD F, VF
+    LD B, VF
+    LD VF, DT
+    LD VF, [I]
+    LD VF, K
+    LD VF, VF
+    LD VF, 0xFF
+    LD [I], VF
+    END
