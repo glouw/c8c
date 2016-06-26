@@ -100,11 +100,10 @@ void (*opsd[])(void) = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07,
                          _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
                          _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
 void (*list[])(void) = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
-void exec(void (*opcode)(void)) { opcode(); }
-void _0___(void) { exec(opsa[op & 0x000F]); }
-void _8___(void) { exec(opsb[op & 0x000F]); }
-void _E___(void) { exec(opsc[op & 0x000F]); }
-void _F___(void) { exec(opsd[op & 0x00FF]); }
+void _0___(void) { (*opsa[op & 0x000F])(); }
+void _8___(void) { (*opsb[op & 0x000F])(); }
+void _E___(void) { (*opsc[op & 0x000F])(); }
+void _F___(void) { (*opsd[op & 0x00FF])(); }
 
 u8 input(int ms)
 {
@@ -160,9 +159,9 @@ void cycle(void)
     if(dt > 0) dt--;
     if(st > 0) st--;
     if(st) beep();
-    exec(list[op >> 12]);
+    (*list[op >> 12])();
     output();
-    napms(16); /* ~60 Hz */
+    napms(16);
 }
 
 void load(char* str)
