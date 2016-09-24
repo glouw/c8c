@@ -128,7 +128,7 @@ void output(void)
         pixel ?
             color_set(1, NULL):
             color_set(2, NULL);
-        addstr("  ");
+        addch(' ');
     }
     color_set(3, NULL);
     addch('\n');
