@@ -1,362 +1,229 @@
-;   Register Test
-;       Tests all registers opcodes
+LD_TEST:
+    ;----------------------------;
+    ;        LD Vx, byte         ;
+    ;----------------------------;
+    LD V0, 0x11
+    ; Check load
+    SE V0, 0x11 ; Skip next instruction if equal
+    LD VE, 0x01
+    ;----------------------------;
+    ;         LD Vx, Vy          ;
+    ;----------------------------;
+    LD V1, 0x12
+    LD V0, V1
+    ; Check load
+    SE V0, 0x12
+    LD VE, 0x01
+    RET
 
-register:
-    DB 0x00
-    DB 0x00
-    DB 0x7C
-    DB 0x66
-    DB 0x60
-    DB 0x60
-    DB 0x60
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x66
-    DB 0x7E
-    DB 0x60
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3E
-    DB 0x66
-    DB 0x66
-    DB 0x3E
-    DB 0x06
-    DB 0x7C
-    DB 0x00
-    DB 0x18
-    DB 0x00
-    DB 0x38
-    DB 0x18
-    DB 0x18
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3E
-    DB 0x60
-    DB 0x3C
-    DB 0x06
-    DB 0x7C
-    DB 0x00
-    DB 0x00
-    DB 0x18
-    DB 0x7E
-    DB 0x18
-    DB 0x18
-    DB 0x18
-    DB 0x0E
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x66
-    DB 0x7E
-    DB 0x60
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x7C
-    DB 0x66
-    DB 0x60
-    DB 0x60
-    DB 0x60
-    DB 0x00
+; VF goes high with overflows
+ADD_TEST:
+    ;----------------------------;
+    ;       ADD Vx, byte         ;
+    ;----------------------------;
+    LD  V0, 0x13
+    ADD V0, 0x01
+    SE  V0, 0x14
+    LD  VE, 0x01
+    ;----------------------------;
+    ;  ADD Vx, Vy without carry  ;
+    ;----------------------------;
+    LD  V0, 0x15
+    LD  V1, 0x01
+    ADD V0, V1
+    ; Check addition
+    SE V0, 0x16
+    LD VE, 0x01
+    ; Check carry does not occur
+    SE VF, 0x00
+    LD VE, 0x01
+    ;----------------------------;
+    ;    ADD Vx, Vy with carry   ;
+    ;----------------------------;
+    LD  V0, 0xFF
+    LD  V1, 0x01
+    ADD V0, V1
+    ; Check addition (Overflowed occured)
+    SE  V0, 0x00
+    LD  VE, 0x01
+    ; Check carry does occur
+    SE  VF, 0x01
+    LD  VE, 0x01
+    RET
 
-okay:
-    DB 0x3C
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x66
-    DB 0x66
-    DB 0x66
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x60
-    DB 0x60
-    DB 0x6C
-    DB 0x78
-    DB 0x6C
-    DB 0x66
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x06
-    DB 0x3E
-    DB 0x66
-    DB 0x3E
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x66
-    DB 0x66
-    DB 0x66
-    DB 0x3E
-    DB 0x0C
-    DB 0x78
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x3C
-    DB 0x00
-
-fail:
-    DB 0x3C
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x30
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x0E
-    DB 0x18
-    DB 0x3E
-    DB 0x18
-    DB 0x18
-    DB 0x18
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x06
-    DB 0x3E
-    DB 0x66
-    DB 0x3E
-    DB 0x00
-    DB 0x00
-    DB 0x18
-    DB 0x00
-    DB 0x38
-    DB 0x18
-    DB 0x18
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x38
-    DB 0x18
-    DB 0x18
-    DB 0x18
-    DB 0x18
-    DB 0x3C
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x00
-    DB 0x3C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x0C
-    DB 0x3C
-    DB 0x00
-
-PRINT:
-    ; Requires:
-    ;    I : String
-    ;   V0 : x
-    ;   V1 : y
-    ;   V2 : String Length
-    ; Uses:
-    ;   V3 : Index
-    ;   V4 : Character Width
-    LD V3, 0x00
-    LD V4, 0x08
-    WHILE:
-        SNE V2, V3
-        JP BREAK
-        DRW V0, V1, 0x8 ; Character Height
-        ADD  I, V4
-        ADD V0, V4
-        ADD V3, 0x01
-        JP WHILE
-    BREAK:
-        RET
-
-MAIN:
-    ; Print test title
-    LD  I, register ; String
-    LD V0, 0x00     ; x
-    LD V1, 0x00     ; y
-    LD V2, 0x08     ; String length
-    CALL   PRINT
-    ;   notes:
-    ;       VE indicates test failure
-    LD   VE, 0x00
-    ; LD Vx, byte
-    LD   V0, 0x11
-    SE   V0, 0x11
-    LD   VE, 0x01
-    ; LD Vx, Vy
-    LD   V1, 0x12
-    LD   V0, V1
-    SE   V0, 0x12
-    LD   VE, 0x01
-    ; ADD Vx, byte
-    LD   V0, 0x13
-    ADD  V0, 0x01
-    SE   V0, 0x14
-    LD   VE, 0x01
-    ; ADD Vx, Vy without carry
-    LD   V0, 0x15
-    LD   V1, 0x01
-    ADD  V0, V1
-    SE   V0, 0x16 ; Check addition
-    LD   VE, 0x01
-    SE   VF, 0x00 ; Check carry does not occur
-    LD   VE, 0x01
-    ; ADD Vx, Vy with carry
-    LD   V0, 0xFF
-    LD   V1, 0x01
-    ADD  V0, V1
-    SE   V0, 0x00 ; Check addition (Overflowed)
-    LD   VE, 0x01
-    SE   VF, 0x01 ; Check carry does occur
-    LD   VE, 0x01
-    ; SUB  Vx, Vy without borrow
-    LD   V0, 0x15
-    LD   V1, 0x01
-    SUB  V0, V1
-    SE   V0, 0x14 ; Check subtraction
-    LD   VE, 0x01
-    SE   VF, 0x01 ; Check borrow does not occur
-    LD   VE, 0x01
-    ; SUB  Vx, Vy with borrow
-    LD   V0, 0x00
-    LD   V1, 0x01
-    SUB  V0, V1
-    SE   V0, 0xFF ; Check subtraction
-    LD   VE, 0x01
-    SE   VF, 0x00 ; Check borrow does occur
-    LD   VE, 0x01
-    ; SUBN Vx, Vy without borrow
+; VF goes low with borrows
+SUB_TEST:
+    ;----------------------------;
+    ; SUB  Vx, Vy without borrow ;
+    ;----------------------------;
+    LD  V0, 0x15
+    LD  V1, 0x01
+    SUB V0, V1
+    ; Check subtraction
+    SE  V0, 0x14
+    LD  VE, 0x01
+    ; Check borrow does not occur
+    SE  VF, 0x01
+    LD  VE, 0x01
+    ;----------------------------;
+    ;   SUB Vx, Vy with borrow   ;
+    ;----------------------------;
+    LD  V0, 0x00
+    LD  V1, 0x01
+    SUB V0, V1
+    ; Check subtraction
+    SE  V0, 0xFF
+    LD  VE, 0x01
+    ; Check borrow does occur
+    SE  VF, 0x00
+    LD  VE, 0x01
+    ;----------------------------;
+    ; SUBN Vx, Vy without borrow ;
+    ;----------------------------;
     LD   V0, 0x01
     LD   V1, 0x15
     SUBN V0, V1
-    SE   V0, 0x14 ; Check subtraction
+    ; Check subtraction
+    SE   V0, 0x14
     LD   VE, 0x01
-    SE   VF, 0x01 ; Check borrow does not occur
+    ; Check borrow does not occur
+    SE   VF, 0x01
     LD   VE, 0x01
-    ; SUBN Vx, Vy with borrow
+    ;----------------------------;
+    ;   SUBN Vx, Vy with borrow  ;
+    ;----------------------------;
     LD   V0, 0x01
     LD   V1, 0x00
     SUBN V0, V1
-    SE   V0, 0xFF ; Check subtraction
+    ; Check subtraction
+    SE   V0, 0xFF
     LD   VE, 0x01
-    SE   VF, 0x00 ; Check borrow does occur
+    ; Check borrow does occur
+    SE   VF, 0x00
     LD   VE, 0x01
-    ; AND  Vx, Vy
-    LD   V0, 0x0F
-    LD   V1, 0xFF
-    AND  V0, V1
-    SE   V0, 0x0F ; Check AND
-    LD   VE, 0x01
-    ; OR Vx, Vy
-    LD   V0, 0x0F
-    LD   V1, 0xAA
-    OR   V0, V1
-    SE   V0, 0xAF ; Check OR
-    LD   VE, 0x01
-    ; XOR  Vx, Vy
-    LD   V0, 0x0F
-    LD   V1, 0xAA
-    XOR  V0, V1
-    SE   V0, 0xA5 ; Check XOR
-    LD   VE, 0x01
-    ; SHR  Vx, Vy without outshifting
-    LD   V0, 0x00
-    LD   V1, 0x02
-    SHR  V0, V1
-    SE   V0, 0x01 ; Check SHR
-    LD   VE, 0x01
-    SE   VF, 0x00 ; Check shifted is zero in VF
-    LD   VE, 0x01
-    ; SHR Vx, Vx with outshifting
-    SHR  V0, V0
-    SE   V0, 0x00 ; Check SHR
-    LD   VE, 0x01
-    SE   VF, 0x01 ; Check shifted is one in VF
-    LD   VE, 0x01
-    ; SHL Vx, Vy without outshifting
-    LD   V0, 0x00
-    LD   V1, 0x40
-    SHL  V0, V1
-    SE   V0, 0x80 ; Check SHL
-    LD   VE, 0x01
-    SE   VF, 0x00 ; Check shifted is zero in VF
-    LD   VE, 0x01
-    ; SHL Vx, Vx with outshifting
-    SHL  V0, V0
-    SE   V0, 0x00 ; Check SHL
-    LD   VE, 0x01
-    SE   VF, 0x01 ; Check shifted is one in VF
-    LD   VE, 0x01
-    ; RND  Vx, Byte
-    LD   V0, 0x00
-    RND  V0, 0x0F
-    LD   VF, K    ; Check with the eyes
-    LD   V0, 0x00
-    RND  V0, 0xF0
-    LD   VF, K    ; Check with the eyes
-    LD   V0, 0x00
-    RND  V0, 0xFF
-    LD   VF, K    ; Check with the eyes
-    ; Print test status
-    LD    I, fail ; String
-    SE   VE, 0x01
-    LD    I, okay ; String
-    LD   V0, 0x00 ; x
-    LD   V1, 0x08 ; y
-    LD   V2, 0x08 ; String length
-    CALL PRINT
-    ; Push any key to exit
-    LD VF, K
-    END
+    RET
+
+AND_TEST:
+    ;----------------------------;
+    ;        AND  Vx, Vy         ;
+    ;----------------------------;
+    LD  V0, 0xFF
+    LD  V1, 0x0F
+    AND V0, V1
+    ; Check AND
+    SE  V0, 0x0F
+    LD  VE, 0x01
+    RET
+
+OR_TEST:
+    ;----------------------------;
+    ;         OR Vx, Vy          ;
+    ;----------------------------;
+    LD  V0, 0xAA
+    LD  V1, 0x0F
+    OR  V0, V1
+    ; Check OR
+    SE  V0, 0xAF
+    LD  VE, 0x01
+    RET
+
+XOR_TEST:
+    ;----------------------------;
+    ;         XOR Vx, Vy         ;
+    ;----------------------------;
+    LD  V0, 0xAA
+    LD  V1, 0x0F
+    XOR V0, V1
+    ; Check XOR
+    SE  V0, 0xA5
+    LD  VE, 0x01
+    RET
+
+SHR_TEST:
+    ;----------------------------;
+    ; SHR Vx, Vy w/o outshifting ;
+    ;----------------------------;
+    LD  V0, 0x00
+    LD  V1, 0x02
+    SHR V0, V1
+    ; Check SHR
+    SE  V0, 0x01
+    LD  VE, 0x01
+    ; Check shifted is zero in VF
+    SE  VF, 0x00
+    LD  VE, 0x01
+    ;----------------------------;
+    ; SHR Vx, Vx w/ outshifting  ;
+    ;----------------------------;
+    SHR V0, V0
+    ; Check SHR
+    SE  V0, 0x00
+    LD  VE, 0x01
+    ; Check shifted is one in VF
+    SE  VF, 0x01
+    LD  VE, 0x01
+    RET
+
+SHL_TEST:
+    ;----------------------------;
+    ; SHL Vx, Vy w/o outshifting ;
+    ;----------------------------;
+    LD  V0, 0x00
+    LD  V1, 0x40
+    SHL V0, V1
+    ; Check SHL
+    SE  V0, 0x80
+    LD  VE, 0x01
+    ; Check shifted is zero in VF
+    SE  VF, 0x00
+    LD  VE, 0x01
+    ;----------------------------;
+    ; SHL Vx, Vx w/ outshifting  ;
+    ;----------------------------;
+    SHL V0, V0
+    ; Check SHL
+    SE  V0, 0x00
+    LD  VE, 0x01
+    ; Check shifted is one in VF
+    SE  VF, 0x01
+    LD  VE, 0x01
+    RET
+
+RND_TEST:
+    ;----------------------------;
+    ;        RND Vx, Byte        ;
+    ;----------------------------;
+    LD  V0, 0x00
+    RND V0, 0x0F
+    ; Manual check - Push any key to continue
+    LD  VF, K
+    LD  V0, 0x00
+    RND V0, 0xF0
+    ; Manual check - Push any key to continue
+    LD  VF, K
+    LD  V0, 0x00
+    RND V0, 0xFF
+    ; Manual check - Push any key to continue
+    LD  VF, K
+    RET
+
+MAIN:
+    ; VE, if non-zero, indicates test failure
+    LD VE, 0x00
+    ; Test all
+    CALL LD_TEST
+    CALL ADD_TEST
+    CALL SUB_TEST
+    CALL AND_TEST
+    CALL OR_TEST
+    CALL XOR_TEST
+    CALL SHR_TEST
+    CALL SHL_TEST
+    CALL RND_TEST
+    ; Finish - Display VE: the test failure status
+    LD   F, VE
+    LD  V0, 0x01
+    LD  V1, 0x01
+    DRW V0, V1, 0x5
+DONE:
+    JP DONE

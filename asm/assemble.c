@@ -95,14 +95,6 @@ static int drw(FILE* hexid, char* operand, struct node* tree)
     return 0;
 }
 
-static int end(FILE* hexid, char* operand, struct node* tree)
-{
-    (void)operand, (void)tree;
-    // End
-    fprintf(hexid, "00EF\n");
-    return 0;
-}
-
 static int jp(FILE* hexid, char* operand, struct node* tree)
 {
     struct node* found;
@@ -366,18 +358,18 @@ static int xor(FILE* hexid, char* operand, struct node* tree)
 }
 
 static int (*functions[])(FILE* hexid, char* operand, struct node* tree) = {
-    add, and, call, cls, db, drw, end, jp, ld, or, ret, rnd, se,
+    add, and, call, cls, db, drw, jp, ld, or, ret, rnd, se,
     shl, shr, sknp, skp, sne, sub, subn, xor
 };
 
 static char* mnemonics[] = {
-    "ADD","AND","CALL","CLS","DB","DRW","END","JP","LD","OR","RET","RND","SE",
+    "ADD","AND","CALL","CLS","DB","DRW","JP","LD","OR","RET","RND","SE",
     "SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","XOR"
 };
 
 static int compare(const void* a, const void* b)
 {
-    return strcmp((char*)a, *(char**)b);
+    return strcmp((char*)a, *(char**)b); // b is an array of strings
 }
 
 int assemble(FILE* hexid, char* mnemonic, char* operand, struct node* tree)
