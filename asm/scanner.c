@@ -1,19 +1,22 @@
-#include "scan.h"
+#include "scanner.h"
 
-#include <stdbool.h>
+#include "opcodes.h"
+#include "tree.h"
+#include "errors.h"
+#include "file.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
 
-#include "assemble.h"
-
-struct node* scan(struct node* tree, FILE* assem, FILE* hexid)
+static struct node* scan(struct node* labels)
 {
     unsigned size = 0;
     unsigned address = 0x0202;
     char* line = NULL;
-    bool grow = tree ? false : true;
-    for(unsigned linenumber = 1; getline(&line, &size, assem) != -1; linenumber++)
+    bool grow = labels ? false : true;
+    for(unsigned linenumber = 1; getline(&line, &size, file.input) != -1; linenumber++)
     {
         char* label;
         char* mnemonic;
@@ -33,7 +36,16 @@ struct node* scan(struct node* tree, FILE* assem, FILE* hexid)
         {
             label = strtok(line, "\t :");
             if(grow)
-                tree = insert(tree, new(label, address));
+            {
+                labels = tree.insert(labels, tree.build(label, address));
+                if(tree.poisoned)
+                {
+                    fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
+                    free(line);
+                    tree.burn(labels);
+                    exit(1);
+                }
+            }
         }
         mnemonic = strtok(colon ? NULL : line, "\t ");
         operand = strtok(NULL, "");
@@ -42,23 +54,20 @@ struct node* scan(struct node* tree, FILE* assem, FILE* hexid)
             if(grow)
                 address += strcmp(mnemonic, "DB") == 0 ? 0x0001 : 0x0002;
             else
-                error = assemble(hexid, mnemonic, operand, tree);
-        }
-        // Error handling
-        char* message = NULL;
-        switch(error)
-        {
-            case 1: message = "error: line %d: operand formatting\n"; break;
-            case 2: message = "error: line %d: label not found\n"; break;
-            case 3: message = "error: line %d: unsupported chip8 mnemonic\n"; break;
+                error = opcodes.assemble(mnemonic, operand, labels);
         }
         if(error)
         {
-            fprintf(stderr, message, linenumber);
+            errors.handle(error, linenumber);
             free(line);
+            tree.burn(labels);
             exit(1);
         }
     }
     free(line);
-    return tree;
+    return labels;
 }
+
+struct scanner scanner = {
+    .scan = scan
+};

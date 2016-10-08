@@ -1,12 +1,12 @@
 CC = gcc
 PROJ = asm
 CPPFLAGS = -Iinclude
-SRCS = assemble.c burn.c get.c insert.c main.c new.c print.c scan.c
+SRCS = file.c main.c opcodes.c scanner.c tree.c errors.c
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -Wextra -Wshadow -std=gnu11 -pedantic -Og -g
 LDFLAGS = -lm
 TARGET_ARCH = -march=native
-DEPDIR := .d
+DEPDIR := deps
 $(shell mkdir -p $(DEPDIR) >/dev/null)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 

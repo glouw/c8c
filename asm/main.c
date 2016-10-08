@@ -1,51 +1,28 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <stdbool.h>
+
+#include "file.h"
 #include "tree.h"
-#include "scan.h"
-
-static struct node* tree;
-static FILE* assem;
-static FILE* hexid;
-
-static void clean(int error, void* arg)
-{
-    char* oput = (char*)arg;
-    burn(tree);
-    fclose(assem);
-    fclose(hexid);
-    if(error)
-        remove(oput);
-}
+#include "scanner.h"
 
 int main(int argc, char* argv[])
 {
-    if(argc != 3)
-    {
-        fprintf(stderr, "error: requires both an input and output file\n");
-        return 1; // Do not exit as there is nothing to clean
-    }
-    char* iput = argv[1];
-    char* oput = argv[2];
-    on_exit(clean, oput);
-    assem = fopen(iput, "r");
-    hexid = fopen(oput, "w");
+    file.open(argc, argv);
     // First pass
-    tree = scan(NULL, assem, hexid);
+    struct node* labels = scanner.scan(NULL);
     // Reset vector
-    struct node* reset = get(tree, "MAIN");
-    if(reset)
-        fprintf(hexid, "1%03X\n", reset->address);
-    else
+    struct node* reset = tree.get(labels, "MAIN");
+    if(!reset)
     {
-        fprintf(stderr, "error: entry point not found");
+        fprintf(stderr, "error: entry point MAIN not found\n");
+        tree.burn(labels);
         exit(1);
     }
+    fprintf(file.output, "1%03X\n", reset->address);
     // Second pass
-    rewind(assem);
-    scan(tree, assem, hexid);
-    // Done
+    rewind(file.input);
+    scanner.scan(labels);
+    // Cleanup
+    tree.burn(labels);
     exit(0);
 }

@@ -6,7 +6,7 @@ OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -Wextra -Wshadow -std=gnu11 -pedantic -Og -g
 LDFLAGS = -lm -lncurses
 TARGET_ARCH = -march=native
-DEPDIR := .d
+DEPDIR := deps
 $(shell mkdir -p $(DEPDIR) >/dev/null)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 
