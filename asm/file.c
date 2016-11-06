@@ -10,12 +10,12 @@ static void close(int type, void* hexidecimal)
 {
     switch(type)
     {
-        // Good ending
+        // Happy ending
         case 0:
             fclose(input);
             fclose(output);
             break;
-        // Bad ending
+        // Unhappy ending
         case 1:
             fclose(input);
             fclose(output);

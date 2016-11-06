@@ -164,7 +164,7 @@ void cycle(void)
     if(st) beep();
     (*list[op >> 12])();
     output();
-    napms(16); // 60Hz
+    napms(1);
 }
 
 void load(char* str)
