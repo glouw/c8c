@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "file.h"
 #include "tree.h"
 #include "scanner.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char* argv[])
 {
@@ -18,9 +18,9 @@ int main(int argc, char* argv[])
         tree.burn(labels);
         exit(1);
     }
-    fprintf(file.output, "1%03X\n", reset->address);
+    fprintf(output, "1%03X\n", reset->address);
     // Second pass
-    rewind(file.input);
+    rewind(input);
     scanner.scan(labels);
     // Cleanup
     tree.burn(labels);

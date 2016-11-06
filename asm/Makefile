@@ -1,7 +1,7 @@
 CC = gcc
 PROJ = asm
 CPPFLAGS = -Iinclude
-SRCS = file.c main.c opcodes.c scanner.c tree.c errors.c
+SRCS = file.c main.c opcodes.c scanner.c tree.c errors.c flags.c
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -Wextra -Wshadow -std=gnu11 -pedantic -Og -g
 LDFLAGS = -lm

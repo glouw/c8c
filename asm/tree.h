@@ -18,7 +18,6 @@ struct tree
     struct node* (*get)(struct node* nodes, char* name);
     void (*burn)(struct node* nodes);
     void (*print)(struct node* nodes);
-    bool poisoned; // Indicates if something went wrong
 };
 
-extern struct tree tree;
+extern const struct tree tree;

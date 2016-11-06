@@ -5,4 +5,4 @@ struct errors
     void (*handle)(int error, unsigned linenumber);
 };
 
-extern struct errors errors;
+extern const struct errors errors;

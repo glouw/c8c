@@ -5,14 +5,12 @@
 static void handle(int error, unsigned linenumber)
 {
     char* types[] = {
-        "no error",
-        "operand formatting",
-        "label not found",
-        "unsupported chip8 mnemonic"
+        /* 0 */ "no error",
+        /* 1 */ "operand formatting",
+        /* 2 */ "label not found",
+        /* 3 */ "unsupported chip8 mnemonic"
     };
     fprintf(stderr, "error: line %d: %s\n", linenumber, types[error]);
 }
 
-struct errors errors = {
-    .handle = handle
-};
+const struct errors errors = { handle };

@@ -1,5 +1,8 @@
 #include "tree.h"
 
+#include "errors.h"
+#include "flags.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,7 +27,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     {
         free(node->name);
         free(node);
-        tree.poisoned = true;
+        flags.tree = true;
     }
     else if(difference < 0)
         nodes->left = insert(nodes->left, node);
@@ -65,11 +68,4 @@ static void print(struct node* nodes)
     print(nodes->rite);
 }
 
-struct tree tree = {
-    .build = build,
-    .insert = insert,
-    .get = get,
-    .burn = burn,
-    .print = print,
-    .poisoned = false
-};
+const struct tree tree = { build, insert, get, burn, print };

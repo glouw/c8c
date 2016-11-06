@@ -7,4 +7,4 @@ struct scanner
     struct node* (*scan)(struct node* tree);
 };
 
-extern struct scanner scanner;
+extern const struct scanner scanner;

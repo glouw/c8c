@@ -67,10 +67,10 @@ void _DXYN(void) { u16 x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n = (op &
     }
     v[0xF] = flag;
 }
-void _EXA1(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input(+0); if(pressed == 0xFF) return; if(v[x] != pressed) pc += 2; }
-void _EX9E(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input(+0); if(pressed == 0xFF) return; if(v[x] == pressed) pc += 2; }
+void _EXA1(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input( 0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
+void _EX9E(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input( 0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
 void _FX07(void) { u16 x = (op & 0x0F00) >> 8; v[x] = dt; }
-void _FX0A(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input(-1); if(pressed == 0xFF) return; v[x] = pressed; }
+void _FX0A(void) { u16 x = (op & 0x0F00) >> 8; u8 pressed = input(-1); if(pressed == 0xFF) v[x] = 0x00; else v[x] = pressed; }
 void _FX15(void) { u16 x = (op & 0x0F00) >> 8; dt = v[x]; }
 void _FX18(void) { u16 x = (op & 0x0F00) >> 8; st = v[x]; }
 void _FX1E(void) { u16 x = (op & 0x0F00) >> 8; I += v[x]; }
@@ -114,8 +114,9 @@ u8 input(int ms)
         case 'q': return 0x04; case 'w': return 0x05; case 'e': return 0x06; case 'r': return 0x0D;
         case 'a': return 0x07; case 's': return 0x08; case 'd': return 0x09; case 'f': return 0x0E;
         case 'z': return 0x0A; case 'x': return 0x00; case 'c': return 0x0B; case 'v': return 0x0F;
+        default:
+            return 0xFF;
     }
-    return 0xFF;
 }
 
 void output(void)
@@ -133,6 +134,7 @@ void output(void)
     color_set(3, NULL);
     addch('\n');
     }
+#ifndef QUIET
     addch('\n');
     for(int i = 0; i < VSIZE; i++)
     {
@@ -149,6 +151,7 @@ void output(void)
     printw("dt: %02X\n", dt);
     printw("st: %02X\n", st);
     printw("sp: %02X\n", sp);
+#endif
     refresh();
 }
 
@@ -161,13 +164,12 @@ void cycle(void)
     if(st) beep();
     (*list[op >> 12])();
     output();
-    napms(16);
+    napms(16); // 60Hz
 }
 
 void load(char* str)
 {
-    u8 ch[BFONT] =
-    {
+    u8 ch[BFONT] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0,
         0x20, 0x60, 0x20, 0x20, 0x70,
         0xF0, 0x10, 0xF0, 0x80, 0xF0,

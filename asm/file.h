@@ -4,11 +4,12 @@
 
 #include <stdio.h>
 
+extern FILE* input;
+extern FILE* output;
+
 struct file
 {
     void (*open)(int argc, char* argv[]);
-    FILE* input;
-    FILE* output;
 };
 
-extern struct file file;
+extern const struct file file;

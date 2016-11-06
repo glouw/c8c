@@ -1,6 +1,7 @@
 #include "scanner.h"
 
 #include "opcodes.h"
+#include "flags.h"
 #include "tree.h"
 #include "errors.h"
 #include "file.h"
@@ -16,7 +17,7 @@ static struct node* scan(struct node* labels)
     unsigned address = 0x0202;
     char* line = NULL;
     bool grow = labels ? false : true;
-    for(unsigned linenumber = 1; getline(&line, &size, file.input) != -1; linenumber++)
+    for(unsigned linenumber = 1; getline(&line, &size, input) != -1; linenumber++)
     {
         char* label;
         char* mnemonic;
@@ -38,7 +39,7 @@ static struct node* scan(struct node* labels)
             if(grow)
             {
                 labels = tree.insert(labels, tree.build(label, address));
-                if(tree.poisoned)
+                if(flags.tree)
                 {
                     fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
                     free(line);
@@ -68,6 +69,4 @@ static struct node* scan(struct node* labels)
     return labels;
 }
 
-struct scanner scanner = {
-    .scan = scan
-};
+const struct scanner scanner = { scan };

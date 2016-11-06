@@ -3,19 +3,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+FILE* input;
+FILE* output;
+
 static void close(int type, void* hexidecimal)
 {
     switch(type)
     {
         // Good ending
         case 0:
-            fclose(file.input);
-            fclose(file.output);
+            fclose(input);
+            fclose(output);
             break;
         // Bad ending
         case 1:
-            fclose(file.input);
-            fclose(file.output);
+            fclose(input);
+            fclose(output);
             remove(hexidecimal);
             break;
         // Internal to this: input and output failed to open
@@ -35,24 +38,20 @@ static void open(int argc, char* argv[])
         exit(2);
     }
     // Try opening the input file
-    file.input = fopen(assembly, "r");
-    if(file.input == NULL)
+    input = fopen(assembly, "r");
+    if(input == NULL)
     {
         fprintf(stderr, "error: could not open input %s\n", assembly);
         exit(2);
     }
     // Try opening the output file
-    file.output = fopen(hexidecimal, "w");
-    if(file.output == NULL)
+    output = fopen(hexidecimal, "w");
+    if(output == NULL)
     {
         fprintf(stderr, "error: could not open output file %s\n", hexidecimal);
-        fclose(file.input);
+        fclose(input);
         exit(2);
     }
 }
 
-struct file file = {
-    .open = open,
-    .input = NULL,
-    .output = NULL
-};
+const struct file file = { open };
