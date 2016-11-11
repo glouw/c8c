@@ -31,12 +31,24 @@ u8 sp;
 u8 v[VSIZE];
 u8 mem[BYTES];
 
-u8 input(int ms);
+u8 input(int ms)
+{
+    timeout(ms);
+    switch(getch())
+    {
+        case '1': return 0x01; case '2': return 0x02; case '3': return 0x03; case '4': return 0x0C;
+        case 'q': return 0x04; case 'w': return 0x05; case 'e': return 0x06; case 'r': return 0x0D;
+        case 'a': return 0x07; case 's': return 0x08; case 'd': return 0x09; case 'f': return 0x0E;
+        case 'z': return 0x0A; case 'x': return 0x00; case 'c': return 0x0B; case 'v': return 0x0F;
+        default:
+            return 0xFF;
+    }
+}
 
 void _0000(void) { }
 void _00E0(void) { for(u16 i = 0; i < VROWS; i++) while(vmem[i] >>= 1); }
 void _00EE(void) { pc = s[--sp]; }
-void _00EF(void) { endwin(); exit(0); }
+void _00EF(void) { exit(0); }
 void _1NNN(void) { u16 nnn = op & 0x0FFF; pc = nnn; }
 void _2NNN(void) { u16 nnn = op & 0x0FFF; s[sp++] = pc; pc = nnn; }
 void _3XNN(void) { u16 x = (op & 0x0F00) >> 8, nn = op & 0x00FF; if(v[x] == nn) pc += 0x0002; }
@@ -105,41 +117,14 @@ void _8___(void) { (*opsb[op & 0x000F])(); }
 void _E___(void) { (*opsc[op & 0x000F])(); }
 void _F___(void) { (*opsd[op & 0x00FF])(); }
 
-u8 input(int ms)
+void verbose(void)
 {
-    timeout(ms);
-    switch(getch())
-    {
-        case '1': return 0x01; case '2': return 0x02; case '3': return 0x03; case '4': return 0x0C;
-        case 'q': return 0x04; case 'w': return 0x05; case 'e': return 0x06; case 'r': return 0x0D;
-        case 'a': return 0x07; case 's': return 0x08; case 'd': return 0x09; case 'f': return 0x0E;
-        case 'z': return 0x0A; case 'x': return 0x00; case 'c': return 0x0B; case 'v': return 0x0F;
-        default:
-            return 0xFF;
-    }
-}
-
-void output(void)
-{
-    erase();
-    for(int i = 0; i < VROWS; i++) {
-    for(int j = 0; j < VCOLS; j++)
-    {
-        u8 pixel = (vmem[i] >> (VCOLS - 1 - j)) & 0x1;
-        pixel ?
-            color_set(1, NULL):
-            color_set(2, NULL);
-        addch(' ');
-    }
-    color_set(3, NULL);
-    addch('\n');
-    }
-#ifndef QUIET
     addch('\n');
     for(int i = 0; i < VSIZE; i++)
     {
         printw("  ");
-        printw("%02X ", v[i]);
+        printw("%02X", v[i]);
+        printw(" ");
     }
     addch('\n');
     for(int i = 0; i < SSIZE; i++)
@@ -151,7 +136,23 @@ void output(void)
     printw("dt: %02X\n", dt);
     printw("st: %02X\n", st);
     printw("sp: %02X\n", sp);
-#endif
+}
+
+void output(void)
+{
+    erase();
+    for(int i = 0; i < VROWS; i++)
+    {
+        for(int j = 0; j < VCOLS; j++)
+        {
+            u8 pixel = (vmem[i] >> (VCOLS - 1 - j)) & 0x1;
+            pixel ? color_set(1, NULL) : color_set(2, NULL);
+            addch(' ');
+        }
+        color_set(3, NULL);
+        addch('\n');
+    }
+    verbose();
     refresh();
 }
 
@@ -164,10 +165,10 @@ void cycle(void)
     if(st) beep();
     (*list[op >> 12])();
     output();
-    napms(1);
+    napms(17);
 }
 
-void load(char* str)
+void load(char* game)
 {
     u8 ch[BFONT] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -187,29 +188,29 @@ void load(char* str)
         0xF0, 0x80, 0xF0, 0x80, 0xF0,
         0xF0, 0x80, 0xF0, 0x80, 0x80 
     };
-    FILE* game = fopen(str, "rb");
-    if(!game)
-    {
-        endwin();
-        fprintf(stderr, "%s not found\n", str);
-        exit(1);
-    }
-    fseek(game, 0, SEEK_END);
-    long size = ftell(game);
-    rewind(game);
+    FILE* fp = fopen(game, "rb");
+    if(!fp)
+        exit(2);
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
     u8 buf[BYTES];
-    fread(buf, 1, size, game);
-    fclose(game);
+    fread(buf, 1, size, fp);
+    fclose(fp);
     for(u16 i = 0; i < BFONT; i++)
         mem[i] = ch[i];
     for(u16 i = 0; i < size; i++)
         mem[i + START] = buf[i];
 }
 
+void cleanup(void)
+{
+    endwin();
+}
+
 int main(int argc, char* argv[])
 {
-    if(argc != 2)
-        return 1;
+    atexit(cleanup);
     initscr();
     noecho();
     curs_set(0);
@@ -217,7 +218,10 @@ int main(int argc, char* argv[])
     init_pair(1, 0, 5); // Purple Square
     init_pair(2, 0, 0); // Black square
     init_pair(3, 7, 0); // White text
-    load(argv[1]);
+    if(argc != 2)
+        exit(1);
+    char* game = argv[1];
+    load(game);
     srand(time(0));
     for(;;)
         cycle();
