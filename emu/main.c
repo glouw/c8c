@@ -159,11 +159,11 @@ void output(void)
 
 void cycle(void)
 {
-    op = (mem[pc] << 8) + (mem[pc + 1] & 0x00FF);
-    pc += 0x0002;
     if(dt > 0) dt--;
     if(st > 0) st--;
     if(st) beep();
+    op = (mem[pc] << 8) + (mem[pc + 1] & 0x00FF);
+    pc += 0x0002;
     (*exec[op >> 12])();
     output();
     napms(10);
