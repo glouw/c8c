@@ -2,9 +2,8 @@
 
 #include "tree.h"
 
-struct scanner
+const struct scanner
 {
     struct node* (*scan)(struct node* tree);
-};
-
-extern const struct scanner scanner;
+}
+scanner;

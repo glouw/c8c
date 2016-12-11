@@ -5,24 +5,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(int argc, char* argv[])
+int main(const int argc, char* argv[])
 {
-    file.open(argc, argv);
+    if(argc != 3)
+    {
+        fprintf(stderr, "error: requires input.asm, output.hex\n");
+        return 1;
+    }
+    file.open(argv);
     // First pass
     struct node* labels = scanner.scan(NULL);
     // Reset vector
-    struct node* reset = tree.get(labels, "MAIN");
+    const char* entry = "MAIN";
+    const struct node* reset = tree.get(labels, entry);
     if(!reset)
     {
-        fprintf(stderr, "error: entry point MAIN not found\n");
+        fprintf(stderr, "error: entry point %s not found\n", entry);
         tree.burn(labels);
-        exit(1);
+        exit(2);
     }
-    fprintf(output, "1%03X\n", reset->address);
+    fprintf(file.output(), "1%03X\n", reset->address);
     // Second pass
-    rewind(input);
+    rewind(file.input());
     scanner.scan(labels);
-    // Cleanup
+    // All's well that ends well
     tree.burn(labels);
     exit(0);
 }

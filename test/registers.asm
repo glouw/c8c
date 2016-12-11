@@ -226,5 +226,5 @@ MAIN:
     LD  V1, 0x01
     DRW V0, V1, 0x5
     ; All is well; stay here forever
-MAIN_DONE:
-    JP MAIN_DONE
+END:
+    JP END

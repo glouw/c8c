@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-static struct node* build(char* name, unsigned address)
+static struct node* build(const char* name, unsigned address)
 {
     struct node* node = malloc(sizeof(*node));
     node->name = strdup(name);
@@ -36,7 +36,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     return nodes;
 }
 
-static struct node* get(struct node* nodes, char* name)
+static struct node* get(struct node* nodes, const char* name)
 {
     if(nodes == NULL)
         return NULL;
@@ -68,4 +68,10 @@ static void print(struct node* nodes)
     print(nodes->rite);
 }
 
-const struct tree tree = { build, insert, get, burn, print };
+const struct tree tree = {
+    .build = build,
+    .insert = insert,
+    .get = get,
+    .burn = burn,
+    .print = print
+};

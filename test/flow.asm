@@ -1,34 +1,31 @@
-LD_TEST:
+AFTER_RESET:
     ;----------------------------;
-    ;        LD VX, K            ;
+    ;        JP V0, addr         ;
     ;----------------------------;
-    LD VA, K
-LD_TEST_BACK:
+    LD V0, 0x02
+    ; Jumps to the return of JP_TEST
+    JP V0, JP_TEST
+
+JP_TEST:
     ;----------------------------;
-    ;        SKP VX              ;
+    ;        JP addr             ;
     ;----------------------------;
-    SKP VA
-    JP LD_TEST_BACK
-LD_TEST_AGAIN:
+    JP AFTER_RESET
     ;----------------------------;
-    ;        SKNP VX             ;
+    ;        JP V0, addr         ;
     ;----------------------------;
-    SKNP VA
-    JP LD_TEST_OUT
-    JP LD_TEST_AGAIN
-LD_TEST_OUT:
     RET
 
 MAIN:
     ; VE, if non-zero, indicates test failure
     LD VE, 0x00
     ; Test all
-    CALL LD_TEST
+    CALL JP_TEST
     ; Finish - Display VE: the test failure status
     LD   F, VE
     LD  V0, 0x01
     LD  V1, 0x01
     DRW V0, V1, 0x5
     ; All is well; stay here forever
-MAIN_DONE:
-    JP MAIN_DONE
+END:
+    JP END

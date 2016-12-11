@@ -2,9 +2,9 @@
 
 #include <stdio.h>
 
-static void handle(int error, unsigned linenumber)
+static void handle(const int error, const unsigned linenumber)
 {
-    char* types[] = {
+    const char* const types[] = {
         /* 0 */ "no error",
         /* 1 */ "operand formatting",
         /* 2 */ "label not found",
@@ -13,4 +13,6 @@ static void handle(int error, unsigned linenumber)
     fprintf(stderr, "error: line %d: %s\n", linenumber, types[error]);
 }
 
-const struct errors errors = { handle };
+const struct errors errors = {
+    .handle = handle
+};

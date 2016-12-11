@@ -17,7 +17,7 @@ static struct node* scan(struct node* labels)
     unsigned address = 0x0202;
     char* line = NULL;
     bool grow = labels ? false : true;
-    for(unsigned linenumber = 1; getline(&line, &size, input) != -1; linenumber++)
+    for(unsigned linenumber = 1; getline(&line, &size, file.input()) != -1; linenumber++)
     {
         char* label;
         char* mnemonic;
@@ -44,7 +44,7 @@ static struct node* scan(struct node* labels)
                     fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
                     free(line);
                     tree.burn(labels);
-                    exit(1);
+                    exit(2);
                 }
             }
         }
@@ -62,11 +62,13 @@ static struct node* scan(struct node* labels)
             errors.handle(error, linenumber);
             free(line);
             tree.burn(labels);
-            exit(1);
+            exit(2);
         }
     }
     free(line);
     return labels;
 }
 
-const struct scanner scanner = { scan };
+const struct scanner scanner = {
+    .scan = scan
+};

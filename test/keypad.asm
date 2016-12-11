@@ -1,21 +1,22 @@
 LD_TEST:
     ;----------------------------;
-    ;        LD DT, VX           ;
+    ;        LD VX, K            ;
     ;----------------------------;
-    LD V0, 0xFF
-    LD DT, V0   ; 0xFF
+    LD VA, K
+BACK:
     ;----------------------------;
-    ;        LD VX, DT           ;
+    ;        SKP VX              ;
     ;----------------------------;
-    LD V1, DT   ; 0xFE
-    SE V1, 0xFE ; 0xFE
-    ; Flag
-    LD VE, 0x01
+    SKP VA
+    JP BACK
+AGAIN:
     ;----------------------------;
-    ;        LD ST, VX           ;
+    ;        SKNP VX             ;
     ;----------------------------;
-    LD V2, 0xFF
-    LD ST, V2 ; How to test this?
+    SKNP VA
+    JP OUT
+    JP AGAIN
+OUT:
     RET
 
 MAIN:
@@ -29,5 +30,5 @@ MAIN:
     LD  V1, 0x01
     DRW V0, V1, 0x5
     ; All is well; stay here forever
-MAIN_DONE:
-    JP MAIN_DONE
+END:
+    JP END

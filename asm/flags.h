@@ -5,6 +5,5 @@
 struct flags
 {
     bool tree;
-};
-
-extern struct flags flags;
+}
+flags;

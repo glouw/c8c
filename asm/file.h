@@ -4,12 +4,10 @@
 
 #include <stdio.h>
 
-extern FILE* input;
-extern FILE* output;
-
-struct file
+const struct file
 {
-    void (*open)(int argc, char* argv[]);
-};
-
-extern const struct file file;
+    FILE* (*input)(void);
+    FILE* (*output)(void);
+    void (*open)(char* argv[static 3]);
+}
+file;

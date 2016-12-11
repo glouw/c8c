@@ -56,7 +56,7 @@ DRW_BCD_TEST:
 ; Display and wait for each
 DRW_FONT_TEST:
     LD  V3, 0x00
-DRW_FONT_TEST_WHILE:
+WHILE:
     CLS
     LD   F, V3
     LD  V0, 0x01
@@ -67,7 +67,7 @@ DRW_FONT_TEST_WHILE:
     ; Loop
     ADD V3, 0x01
     SE  V3, 0x10
-    JP DRW_FONT_TEST_WHILE
+    JP WHILE
     ; Done
     RET
 
@@ -139,5 +139,5 @@ MAIN:
     LD  V1, 0x01
     DRW V0, V1, 0x5
     ; All is well; stay here forever
-MAIN_DONE:
-    JP MAIN_DONE
+END:
+    JP END

@@ -3,55 +3,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-FILE* input;
-FILE* output;
+static FILE* fi;
+static FILE* fo;
 
-static void close(int type, void* hexidecimal)
+static FILE* input(void)
 {
-    switch(type)
+    return fi;
+}
+
+static FILE* output(void)
+{
+    return fo;
+}
+
+static void close(const int error, void* argv)
+{
+    if(fi)
+        fclose(fi);
+    if(fo)
+        fclose(fo);
+    switch(error)
     {
-        // Happy ending
-        case 0:
-            fclose(input);
-            fclose(output);
-            break;
-        // Unhappy ending
-        case 1:
-            fclose(input);
-            fclose(output);
-            remove(hexidecimal);
-            break;
-        // Internal to this: input and output failed to open
-        case 2:
-            break;
+        case 0: break;
+        case 1: break;
+        case 2: remove(argv); break;
     }
 }
 
-static void open(int argc, char* argv[])
+static void open(char* argv[static 3])
 {
-    char* assembly = argv[1];
-    char* hexidecimal = argv[2];
-    on_exit(close, hexidecimal);
-    if(argc != 3)
+    on_exit(close, argv[2]);
+    fi = fopen(argv[1], "r");
+    fo = fopen(argv[2], "w");
+    if(fi == NULL)
     {
-        fprintf(stderr, "error: requires an input .asm file and an output .hex file\n");
-        exit(2);
+        fprintf(stderr, "error: %s does not exist\n", argv[1]);
+        exit(1);
     }
-    // Try opening the input file
-    input = fopen(assembly, "r");
-    if(input == NULL)
+    if(fo == NULL)
     {
-        fprintf(stderr, "error: could not open input %s\n", assembly);
-        exit(2);
-    }
-    // Try opening the output file
-    output = fopen(hexidecimal, "w");
-    if(output == NULL)
-    {
-        fprintf(stderr, "error: could not open output file %s\n", hexidecimal);
-        fclose(input);
+        fprintf(stderr, "error: %s does not exist\n", argv[2]);
         exit(2);
     }
 }
 
-const struct file file = { open };
+const struct file file = {
+    .input = input,
+    .output = output,
+    .open = open
+};

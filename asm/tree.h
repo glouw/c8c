@@ -11,13 +11,12 @@ struct node
     struct node* rite;
 };
 
-struct tree
+const struct tree
 {
-    struct node* (*build)(char* name, unsigned address);
+    struct node* (*build)(const char* name, unsigned address);
     struct node* (*insert)(struct node* nodes, struct node* node);
-    struct node* (*get)(struct node* nodes, char* name);
+    struct node* (*get)(struct node* nodes, const char* name);
     void (*burn)(struct node* nodes);
     void (*print)(struct node* nodes);
-};
-
-extern const struct tree tree;
+}
+tree;

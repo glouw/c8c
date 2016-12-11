@@ -1,8 +1,7 @@
 #pragma once
 
-struct errors
+const struct errors
 {
-    void (*handle)(int error, unsigned linenumber);
-};
-
-extern const struct errors errors;
+    void (*handle)(const int error, const unsigned linenumber);
+}
+errors;
