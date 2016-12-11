@@ -1,4 +1,4 @@
-ASM = ../asm/asm
+ASM = valgrind ../asm/asm
 BIN = xxd
 
 BINS = registers.bin flow.bin subroutines.bin skips.bin timers.bin keypad.bin graphics.bin storage.bin
