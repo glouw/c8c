@@ -24,7 +24,7 @@ static void reset(char* entry)
     struct node* reset = tree.get(labels, entry);
     if(!reset)
     {
-        printf("error: entry point %s not found\n", entry);
+        fprintf(stderr, "error: entry point %s not found\n", entry);
         exit(1);
     }
     fprintf(files.output(), "1%03X\n", reset->address);

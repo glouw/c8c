@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
 {
     if(argc != 3)
     {
-        printf("error: requires input.asm, output.hex\n");
+        fprintf(stderr, "error: requires input.asm, output.hex\n");
         return 1;
     }
     files.construct();
