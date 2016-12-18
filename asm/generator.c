@@ -1,23 +1,43 @@
-#include "scanner.h"
+#include "generator.h"
 
 #include "opcodes.h"
 #include "flags.h"
 #include "tree.h"
-#include "errors.h"
-#include "file.h"
+#include "files.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
-static struct node* scan(struct node* labels)
+static struct node* labels;
+
+static void destruct(void)
 {
-    unsigned size = 0;
+    tree.burn(labels);
+}
+
+static void construct(void)
+{
+    atexit(destruct);
+}
+
+static void reset(char* entry)
+{
+    struct node* reset = tree.get(labels, entry);
+    if(!reset)
+    {
+        printf("error: entry point %s not found\n", entry);
+        exit(1);
+    }
+    fprintf(files.output(), "1%03X\n", reset->address);
+}
+
+static void scan(bool growing)
+{
+    if(!growing)
+        rewind(files.input());
     unsigned address = 0x0202;
-    char* line = NULL;
-    bool grow = labels ? false : true;
-    for(unsigned linenumber = 1; getline(&line, &size, file.input()) != -1; linenumber++)
+    #define MAX 320
+    char line[MAX];
+    for(unsigned linenumber = 1; fgets(line, MAX, files.input()); linenumber++)
     {
         char* label;
         char* mnemonic;
@@ -36,15 +56,13 @@ static struct node* scan(struct node* labels)
         if(colon)
         {
             label = strtok(line, "\t :");
-            if(grow)
+            if(growing)
             {
                 labels = tree.insert(labels, tree.build(label, address));
                 if(flags.tree)
                 {
                     fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
-                    free(line);
-                    tree.burn(labels);
-                    exit(2);
+                    exit(1);
                 }
             }
         }
@@ -52,23 +70,27 @@ static struct node* scan(struct node* labels)
         operand = strtok(NULL, "");
         if(mnemonic)
         {
-            if(grow)
+            if(growing)
                 address += strcmp(mnemonic, "DB") == 0 ? 0x0001 : 0x0002;
             else
                 error = opcodes.assemble(mnemonic, operand, labels);
         }
         if(error)
         {
-            errors.handle(error, linenumber);
-            free(line);
-            tree.burn(labels);
-            exit(2);
+            char* types[] = {
+                /* 0 */ "no error",
+                /* 1 */ "operand formatting",
+                /* 2 */ "label not found",
+                /* 3 */ "unsupported chip8 mnemonic"
+            };
+            fprintf(stderr, "error: line %d: %s\n", linenumber, types[error]);
+            exit(1);
         }
     }
-    free(line);
-    return labels;
 }
 
-const struct scanner scanner = {
-    .scan = scan
+const struct generator generator = {
+    .construct = construct,
+    .reset = reset,
+    .scan = scan,
 };

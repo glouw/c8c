@@ -2,8 +2,12 @@
 
 #include <stdbool.h>
 
-struct flags
+union flags
 {
-    bool tree;
+    struct
+    {
+        unsigned tree : 1;
+    };
+    unsigned any;
 }
 flags;

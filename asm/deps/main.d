@@ -1,7 +1,7 @@
-main.o: main.c file.h tree.h scanner.h
+main.o: main.c files.h tree.h generator.h
 
-file.h:
+files.h:
 
 tree.h:
 
-scanner.h:
+generator.h:

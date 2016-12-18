@@ -1,20 +1,17 @@
 #include "tree.h"
 
-#include "errors.h"
 #include "flags.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
-static struct node* build(const char* name, unsigned address)
+static struct node* build(char* name, unsigned address)
 {
     struct node* node = malloc(sizeof(*node));
     node->name = strdup(name);
     node->address = address;
-    node->left = NULL;
-    node->rite = NULL;
+    node->l = NULL;
+    node->r = NULL;
     return node;
 }
 
@@ -30,13 +27,13 @@ static struct node* insert(struct node* nodes, struct node* node)
         flags.tree = true;
     }
     else if(difference < 0)
-        nodes->left = insert(nodes->left, node);
+        nodes->l = insert(nodes->l, node);
     else
-        nodes->rite = insert(nodes->rite, node);
+        nodes->r = insert(nodes->r, node);
     return nodes;
 }
 
-static struct node* get(struct node* nodes, const char* name)
+static struct node* get(struct node* nodes, char* name)
 {
     if(nodes == NULL)
         return NULL;
@@ -44,17 +41,17 @@ static struct node* get(struct node* nodes, const char* name)
     if(difference == 0)
         return nodes;
     else if(difference < 0)
-        return get(nodes->left, name);
+        return get(nodes->l, name);
     else
-        return get(nodes->rite, name);
+        return get(nodes->r, name);
 }
 
 static void burn(struct node* nodes)
 {
     if(nodes == NULL)
         return;
-    burn(nodes->left);
-    burn(nodes->rite);
+    burn(nodes->l);
+    burn(nodes->r);
     free(nodes->name);
     free(nodes);
 }
@@ -63,9 +60,9 @@ static void print(struct node* nodes)
 {
     if(nodes == NULL)
         return;
+    print(nodes->l);
     fprintf(stderr, "%04X: %s\n", nodes->address, nodes->name);
-    print(nodes->left);
-    print(nodes->rite);
+    print(nodes->r);
 }
 
 const struct tree tree = {

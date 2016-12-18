@@ -1,7 +1,7 @@
-opcodes.o: opcodes.c opcodes.h tree.h file.h
+opcodes.o: opcodes.c opcodes.h tree.h files.h
 
 opcodes.h:
 
 tree.h:
 
-file.h:
+files.h:

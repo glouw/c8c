@@ -1,5 +1,1 @@
 virtual machine, assembler, and compiler for the chip8 platform
-
-notes:
-    -c8c is still in its experimental phase
-    -f8z by John Earnest (github.com/JohnEarnest/Octo) included within <test>

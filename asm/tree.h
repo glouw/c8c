@@ -7,15 +7,15 @@ struct node
 {
     char* name;
     unsigned address;
-    struct node* left;
-    struct node* rite;
+    struct node* l; // Left
+    struct node* r; // Right
 };
 
 const struct tree
 {
-    struct node* (*build)(const char* name, unsigned address);
+    struct node* (*build)(char* name, unsigned address);
     struct node* (*insert)(struct node* nodes, struct node* node);
-    struct node* (*get)(struct node* nodes, const char* name);
+    struct node* (*get)(struct node* nodes, char* name);
     void (*burn)(struct node* nodes);
     void (*print)(struct node* nodes);
 }

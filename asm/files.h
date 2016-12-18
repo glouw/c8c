@@ -4,10 +4,11 @@
 
 #include <stdio.h>
 
-const struct file
+const struct files
 {
     FILE* (*input)(void);
     FILE* (*output)(void);
-    void (*open)(char* argv[static 3]);
+    void (*construct)(void);
+    void (*open)(char* argv[]);
 }
-file;
+files;
