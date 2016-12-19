@@ -19,7 +19,7 @@ static void construct(void)
     atexit(destruct);
 }
 
-static void reset(char* entry)
+static void entrance(char* entry)
 {
     struct node* reset = tree.get(labels, entry);
     if(!reset)
@@ -32,8 +32,6 @@ static void reset(char* entry)
 
 static void scan(bool growing)
 {
-    if(!growing)
-        rewind(files.input());
     unsigned address = 0x0202;
     #define MAX 320
     char line[MAX];
@@ -91,6 +89,6 @@ static void scan(bool growing)
 
 const struct generator generator = {
     .construct = construct,
-    .reset = reset,
+    .entrance = entrance,
     .scan = scan,
 };

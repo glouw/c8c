@@ -5,7 +5,7 @@
 const struct generator
 {
     void (*construct)(void);
-    void (*reset)(char* entry);
+    void (*entrance)(char* entry);
     void (*scan)(bool growing);
 }
 generator;

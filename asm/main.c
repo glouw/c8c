@@ -13,10 +13,11 @@ int main(int argc, char* argv[])
     // First pass
     generator.construct();
     generator.scan(true);
+    files.reset();
     // Reset vector
-    generator.reset("MAIN");
+    generator.entrance("MAIN");
     // Second pass
     generator.scan(false);
-    // All's well that ends well
+    // Done
     exit(0);
 }

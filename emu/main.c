@@ -187,8 +187,7 @@ int main(int argc, char* argv[])
     init_pair(3, 7, 0); // White text
     if(argc != 2)
         exit(1);
-    char* game = argv[1];
-    load(game);
+    load(argv[1]);
     srand(time(0));
     for(;;)
         cycle();

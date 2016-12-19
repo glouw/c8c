@@ -10,5 +10,6 @@ const struct files
     FILE* (*output)(void);
     void (*construct)(void);
     void (*open)(char* argv[]);
+    void (*reset)(void);
 }
 files;

@@ -50,9 +50,16 @@ static void open(char* argv[])
     }
 }
 
+static void reset(void)
+{
+    rewind(fi);
+    rewind(fo);
+}
+
 const struct files files = {
     .input = input,
     .output = output,
     .construct = construct,
-    .open = open
+    .open = open,
+    .reset = reset
 };
