@@ -1,32 +1,40 @@
-CC = gcc
 PROJ = emu
-CPPFLAGS = -Iinclude
+# Source files
 SRCS = main.c
 OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -Wextra -Wshadow -std=gnu11 -pedantic -Og -g
+DEPS = $(SRCS:.c=.d)
+# Compiler
+CC = clang -std=c99
+# Warnings flags
+CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
+# Debugging flags
+CFLAGS+= -g
+# Optimization flags
+CFLAGS+= -Ofast -flto
+ARCHITECTURE = -march=native
+# Linking flags
 LDFLAGS = -lm -lncurses
-TARGET_ARCH = -march=native
-DEPDIR := deps
-$(shell mkdir -p $(DEPDIR) >/dev/null)
-DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
-
-COMPILE = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
-LINK = $(CC) $(LDFLAGS) $(OBJS) $(TARGET_ARCH) -o
-POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
-
+# Dependency flags
+DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
+# Compile, link, and post process
+COMP = $(CC) $(ARCHITECTURE) $(CFLAGS) $(DEPFLAGS) -c
+LINK = $(CC) $(ARCHITECTURE) $(CFLAGS) $(OBJS) $(LDFLAGS) -o
+POST = mv -f $*.Td $*.d
 $(PROJ): $(OBJS)
 	$(LINK) $(PROJ)
-
 %.o : %.c
-%.o : %.c $(DEPDIR)/%.d
-	$(COMPILE) $(OUTPUT_OPTION) $<
-	@$(POSTCOMPILE)
+%.o : %.c %.d
+	$(COMP) $(OUTPUT_OPTION) $<
+	$(POST)
+%.d: ;
 
-$(DEPDIR)/%.d: ;
-.PRECIOUS: $(DEPDIR)/%.d
+.PRECIOUS: %.d
+-include $(patsubst %,%.d,$(basename $(SRCS)))
 
--include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
-
+.PHONY: clean
 clean:
+	rm -f cachegrind.out.*
+	rm -f vgcore.*
+	rm -f $(DEPS)
 	rm -f $(PROJ)
 	rm -f $(OBJS)

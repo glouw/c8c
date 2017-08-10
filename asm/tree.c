@@ -5,10 +5,17 @@
 #include <stdio.h>
 #include <string.h>
 
+static char* duplicate(char* s)
+{
+    int len = strlen(s) + 1;
+    char* p = malloc(len);
+    return p ? memcpy(p, s, len) : NULL;
+}
+
 static struct node* build(char* name, unsigned address)
 {
     struct node* node = malloc(sizeof(*node));
-    node->name = strdup(name);
+    node->name = duplicate(name);
     node->address = address;
     node->l = NULL;
     node->r = NULL;
@@ -24,7 +31,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     {
         free(node->name);
         free(node);
-        flags.tree = true;
+        flags.bits.tree = true;
     }
     else if(difference < 0)
         nodes->l = insert(nodes->l, node);

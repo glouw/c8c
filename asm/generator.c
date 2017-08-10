@@ -44,20 +44,20 @@ static void scan(bool growing)
         char* semicolon;
         char* colon;
         int error = 0;
-        newline = index(line, '\n');
+        newline = strchr(line, '\n');
         if(newline)
             *newline = '\0';
-        semicolon = index(line, ';');
+        semicolon = strchr(line, ';');
         if(semicolon)
             *semicolon = '\0';
-        colon = index(line, ':');
+        colon = strchr(line, ':');
         if(colon)
         {
             label = strtok(line, "\t :");
             if(growing)
             {
                 labels = tree.insert(labels, tree.build(label, address));
-                if(flags.tree)
+                if(flags.bits.tree)
                 {
                     fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
                     exit(1);
