@@ -1,21 +1,15 @@
 #include "tree.h"
 
 #include "flags.h"
+#include "string.h"
 
 #include <stdio.h>
 #include <string.h>
 
-static char* duplicate(char* s)
-{
-    int len = strlen(s) + 1;
-    char* p = (char*) malloc(len);
-    return p ? (char*) memcpy(p, s, len) : NULL;
-}
-
 static struct node* build(char* name, unsigned address)
 {
     struct node* node = (struct node*) malloc(sizeof(*node));
-    node->name = duplicate(name);
+    node->name = string.duplicate(name);
     node->address = address;
     node->l = NULL;
     node->r = NULL;
