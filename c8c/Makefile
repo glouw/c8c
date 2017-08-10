@@ -1,6 +1,6 @@
 PROJ = c8c
 # Source files
-SRCS = main.c
+SRCS = main.c io.c feed.c translate.c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
 # Compiler
