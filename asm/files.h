@@ -4,12 +4,13 @@
 
 #include <stdio.h>
 
-const struct files
+struct files
 {
-    FILE* (*input)(void);
-    FILE* (*output)(void);
-    void (*construct)(void);
+    FILE* (*input)();
+    FILE* (*output)();
+    void (*construct)();
     void (*open)(char* argv[]);
-    void (*reset)(void);
-}
-files;
+    void (*reset)();
+};
+
+extern const struct files files;

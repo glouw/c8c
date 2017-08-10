@@ -1,8 +1,9 @@
 #pragma once
 
-const struct io
+struct io
 {
-    void (*bomb)(char* message, ...);
-    void (*emit)(char* message, ...);
-}
-io;
+    void (*bomb)(const char* message, ...);
+    void (*emit)(const char* message, ...);
+};
+
+extern const struct io io;

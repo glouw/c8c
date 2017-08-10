@@ -7,16 +7,17 @@ struct node
 {
     char* name;
     unsigned address;
-    struct node* l; // Left
-    struct node* r; // Right
+    struct node* l;
+    struct node* r;
 };
 
-const struct tree
+struct tree
 {
     struct node* (*build)(char* name, unsigned address);
     struct node* (*insert)(struct node* nodes, struct node* node);
-    struct node* (*get)(struct node* nodes, char* name);
+    struct node* (*get)(struct node* nodes, const char* name);
     void (*burn)(struct node* nodes);
     void (*print)(struct node* nodes);
-}
-tree;
+};
+
+extern const struct tree tree;

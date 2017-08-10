@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-const struct feed
+struct feed
 {
     char (*name)();
     int (*number)();
@@ -10,5 +10,6 @@ const struct feed
     bool (*isop)();
     char (*peek)();
     void (*match)(char x);
-}
-feed;
+};
+
+extern const struct feed feed;

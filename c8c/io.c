@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-static void bomb(char* message, ...)
+static void bomb(const char* message, ...)
 {
     va_list args;
     va_start(args, message);
@@ -15,7 +15,7 @@ static void bomb(char* message, ...)
     exit(1);
 }
 
-static void emit(char* message, ...)
+static void emit(const char* message, ...)
 {
     va_list args;
     va_start(args, message);

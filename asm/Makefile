@@ -1,6 +1,6 @@
 PROJ = asm
 # Source files
-SRCS = main.c files.c generator.c opcodes.c tree.c
+SRCS = main.c files.c generator.c opcodes.c tree.c flags.c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
 # Compiler

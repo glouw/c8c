@@ -7,7 +7,7 @@
 
 static int add(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // ADD Vx, Vy
@@ -31,9 +31,9 @@ static int add(char* operand, struct node* labels)
     return 0;
 }
 
-static int and(char* operand, struct node* labels)
+static int _and(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // AND Vx, Vy
@@ -59,14 +59,14 @@ static int call(char* operand, struct node* labels)
 
 static int cls(char* operand, struct node* labels)
 {
-    (void)operand, (void)labels;
+    (void )operand, (void) labels;
     fprintf(files.output(), "00E0\n");
     return 0;
 }
 
 static int db(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ");
     // DB
     if(strlen(a) == 4 && strncmp(a, "0x", 2) == 0 &&
@@ -80,7 +80,7 @@ static int db(char* operand, struct node* labels)
 
 static int drw(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ,");
     char* c = strtok(NULL, "\t ");
@@ -182,9 +182,9 @@ static int ld(char* operand, struct node* labels)
     return 0;
 }
 
-static int or(char* operand, struct node* labels)
+static int _or(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // OR Vx, Vy
@@ -198,7 +198,7 @@ static int or(char* operand, struct node* labels)
 
 static int ret(char* operand, struct node* labels)
 {
-    (void)operand, (void)labels;
+    (void) operand, (void) labels;
     // RET
     fprintf(files.output(), "00EE\n");
     return 0;
@@ -206,7 +206,7 @@ static int ret(char* operand, struct node* labels)
 
 static int rnd(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // RND Vx, byte
@@ -222,7 +222,7 @@ static int rnd(char* operand, struct node* labels)
 
 static int se(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SE Vx, Vy
@@ -243,7 +243,7 @@ static int se(char* operand, struct node* labels)
 
 static int shl(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SHL Vx, Vy
@@ -257,7 +257,7 @@ static int shl(char* operand, struct node* labels)
 
 static int shr(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SHR Vx, Vy
@@ -271,7 +271,7 @@ static int shr(char* operand, struct node* labels)
 
 static int sknp(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ");
     // SKNP Vx
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]))
@@ -283,7 +283,7 @@ static int sknp(char* operand, struct node* labels)
 
 static int skp(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ");
     // SKP Vx
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]))
@@ -295,7 +295,7 @@ static int skp(char* operand, struct node* labels)
 
 static int sne(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SNE Vx, Vy
@@ -316,7 +316,7 @@ static int sne(char* operand, struct node* labels)
 
 static int sub(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SUB Vx, Vy
@@ -330,7 +330,7 @@ static int sub(char* operand, struct node* labels)
 
 static int subn(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // SUBN Vx, Vy
@@ -342,9 +342,9 @@ static int subn(char* operand, struct node* labels)
     return 0;
 }
 
-static int xor(char* operand, struct node* labels)
+static int _xor(char* operand, struct node* labels)
 {
-    (void)labels;
+    (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
     // XOR Vx, Vy
@@ -357,11 +357,11 @@ static int xor(char* operand, struct node* labels)
 }
 
 static int (*functions[])(char* operand, struct node* labels) = {
-    add, and, call, cls, db, drw, jp, ld, or, ret, rnd, se,
-    shl, shr, sknp, skp, sne, sub, subn, xor
+    add, _and, call, cls, db, drw, jp, ld, _or, ret, rnd, se,
+    shl, shr, sknp, skp, sne, sub, subn, _xor
 };
 
-static char* mnemonics[] = {
+static const char* mnemonics[] = {
     "ADD","AND","CALL","CLS","DB","DRW","JP","LD","OR","RET","RND","SE",
     "SHL","SHR","SKNP","SKP","SNE","SUB","SUBN","XOR"
 };
@@ -374,13 +374,11 @@ static int compare(const void* a, const void* b)
 static int assemble(char* mnemonic, char* operand, struct node* labels)
 {
     #define size(array) sizeof(array) / sizeof(char*)
-    char** found = (char**)bsearch(mnemonic, mnemonics, size(mnemonics), sizeof(char*), compare);
+    const char** found = (const char**) bsearch(mnemonic, mnemonics, size(mnemonics), sizeof(char*), compare);
     if(!found)
         return 3;
     int index = found - mnemonics;
     return (*functions[index])(operand, labels);
 }
 
-const struct opcodes opcodes = {
-    .assemble = assemble
-};
+const struct opcodes opcodes = { assemble };

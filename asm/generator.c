@@ -9,17 +9,17 @@
 
 static struct node* labels;
 
-static void destruct(void)
+static void destruct()
 {
     tree.burn(labels);
 }
 
-static void construct(void)
+static void construct()
 {
     atexit(destruct);
 }
 
-static void entrance(char* entry)
+static void entrance(const char* entry)
 {
     struct node* reset = tree.get(labels, entry);
     if(!reset)
@@ -75,7 +75,7 @@ static void scan(bool growing)
         }
         if(error)
         {
-            char* types[] = {
+            const char* types[] = {
                 /* 0 */ "no error",
                 /* 1 */ "operand formatting",
                 /* 2 */ "label not found",
@@ -87,8 +87,4 @@ static void scan(bool growing)
     }
 }
 
-const struct generator generator = {
-    .construct = construct,
-    .entrance = entrance,
-    .scan = scan,
-};
+const struct generator generator = { construct, entrance, scan, };

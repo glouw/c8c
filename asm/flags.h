@@ -10,5 +10,6 @@ union flags
     }
     bits;
     unsigned any;
-}
-flags;
+};
+
+extern union flags flags;

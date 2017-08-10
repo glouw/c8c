@@ -2,8 +2,9 @@
 
 #include "tree.h"
 
-const struct opcodes
+struct opcodes
 {
     int (*assemble)(char* mnemonic, char* operand, struct node* tree);
-}
-opcodes;
+};
+
+extern const struct opcodes opcodes;

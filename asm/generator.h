@@ -2,10 +2,11 @@
 
 #include "tree.h"
 
-const struct generator
+struct generator
 {
-    void (*construct)(void);
-    void (*entrance)(char* entry);
+    void (*construct)();
+    void (*entrance)(const char* entry);
     void (*scan)(bool growing);
-}
-generator;
+};
+
+extern const struct generator generator;

@@ -1,7 +1,8 @@
 #pragma once
 
-const struct translate
+struct translate
 {
     void (*expression)();
-}
-translate;
+};
+
+extern const struct translate translate;

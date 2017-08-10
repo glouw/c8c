@@ -8,13 +8,13 @@
 static char* duplicate(char* s)
 {
     int len = strlen(s) + 1;
-    char* p = malloc(len);
-    return p ? memcpy(p, s, len) : NULL;
+    char* p = (char*) malloc(len);
+    return p ? (char*) memcpy(p, s, len) : NULL;
 }
 
 static struct node* build(char* name, unsigned address)
 {
-    struct node* node = malloc(sizeof(*node));
+    struct node* node = (struct node*) malloc(sizeof(*node));
     node->name = duplicate(name);
     node->address = address;
     node->l = NULL;
@@ -40,7 +40,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     return nodes;
 }
 
-static struct node* get(struct node* nodes, char* name)
+static struct node* get(struct node* nodes, const char* name)
 {
     if(nodes == NULL)
         return NULL;
@@ -72,10 +72,4 @@ static void print(struct node* nodes)
     print(nodes->r);
 }
 
-const struct tree tree = {
-    .build = build,
-    .insert = insert,
-    .get = get,
-    .burn = burn,
-    .print = print
-};
+const struct tree tree = { build, insert, get, burn, print };

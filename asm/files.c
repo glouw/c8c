@@ -7,17 +7,17 @@ static FILE* fo;
 static char* assem;
 static char* hexid;
 
-static FILE* input(void)
+static FILE* input()
 {
     return fi;
 }
 
-static FILE* output(void)
+static FILE* output()
 {
     return fo;
 }
 
-static void destruct(void)
+static void destruct()
 {
     if(fi) fclose(fi);
     if(fo) fclose(fo);
@@ -25,7 +25,7 @@ static void destruct(void)
         remove(hexid);
 }
 
-static void construct(void)
+static void construct()
 {
     atexit(destruct);
 }
@@ -50,16 +50,10 @@ static void open(char* argv[])
     }
 }
 
-static void reset(void)
+static void reset()
 {
     rewind(fi);
     rewind(fo);
 }
 
-const struct files files = {
-    .input = input,
-    .output = output,
-    .construct = construct,
-    .open = open,
-    .reset = reset
-};
+const struct files files = { input, output, construct, open, reset };
