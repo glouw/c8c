@@ -8,7 +8,7 @@
 static int rp;
 
 // Single character variable names
-char names[128];
+static char names[128];
 
 static void print_names() { for(unsigned i = 0; i < sizeof(names); i++) if(isalpha(i)) io.print("%c: %d", i, names[i]); }
 

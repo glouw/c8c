@@ -6,7 +6,9 @@
 FILE* in;
 FILE* out;
 
-void init(FILE* i, FILE* o) { in = i; out = o; }
+static void close() { if(in) fclose(in); if(out) fclose(out); }
+
+static void init(FILE* i, FILE* o) { in = i; out = o; atexit(close); }
 
 static char get() { return fgetc(in); }
 
