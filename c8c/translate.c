@@ -2,18 +2,19 @@
 
 #include "feed.h"
 #include "io.h"
+#include <ctype.h>
 
-// This compiler uses the sixteen general purpose registers
-// of the chip8 as a stack pointed. The register pointer points
-// to a register:
+// Register Pointer: Registers make up the stack
 static int rp;
 
-static void push() { rp++; }
-static void pull() { rp--; }
+// Single character variable names
+char names[128];
 
-// Terms contruct expressions. Terms load a register pointed
-// to by the register pointer. Terms are expressions if
-// enclosed by parentheses:
+static void print_names() { for(unsigned i = 0; i < sizeof(names); i++) if(isalpha(i)) io.print("%c: %d", i, names[i]); }
+
+static void push() { rp++; }
+static void pull() { rp--; } // Pop
+
 static void term()
 {
     if(feed.peek() == '(')
@@ -25,14 +26,12 @@ static void term()
     else io.emit("LD V%1X, 0x%02X", rp, feed.number());
 }
 
-// Expresions are denoted as a forever long train of
-// operations and terms. The expression must start with a term:
-// <Expression> ::= <Term> [<Operation> <Term>]*
-static void operate(char op)
+static void operate(const char op)
 {
     push();
     feed.match(op);
     term();
+    // Operations associate left to right
     switch(op)
     {
         case '+': io.emit("ADD V%1X, V%1X", rp - 1, rp); break;
@@ -44,10 +43,20 @@ static void operate(char op)
     pull();
 }
 
-static void expression()
+// <Expression> ::= <Term> [<Operation> <Term>]*
+static void expression() { term(); while(feed.isop()) operate(feed.peek()); }
+
+// <Ident> ::= <Expression>
+static void ident()
 {
-    term();
-    while(feed.isop()) operate(feed.peek());
+    feed.match(':');
+    names[(int) feed.name()] = rp;
+    feed.match('=');
+    expression();
+    // Saving a name pushes the stack
+    push();
+    // Assignments must end with a new line
+    feed.match('\n');
 }
 
-const struct translate translate = { expression };
+const struct translate translate = { expression, ident, print_names };

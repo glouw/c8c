@@ -4,9 +4,7 @@
 
 enum { VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80 };
  
-uint64_t vmem[VROWS];
-uint16_t pc = START, I, s[SSIZE], op;
-uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
+uint64_t vmem[VROWS]; uint16_t pc = START, I, s[SSIZE], op; uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
 
 uint8_t input(const int ms)
 {
@@ -22,30 +20,30 @@ uint8_t input(const int ms)
     }
 }
 
-void _0000() { /* no operation */ }
+void _0000() { }
 void _00E0() { for(int i = 0; i < VROWS; i++) while(vmem[i] >>= 1); }
 void _00EE() { pc = s[--sp]; }
-void _1NNN() { const uint16_t nnn = op & 0x0FFF; pc = nnn; }
-void _2NNN() { const uint16_t nnn = op & 0x0FFF; s[sp++] = pc; pc = nnn; }
-void _3XNN() { const uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; if(v[x] == nn) pc += 0x0002; }
-void _4XNN() { const uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; if(v[x] != nn) pc += 0x0002; }
-void _5XY0() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; if(v[x] == v[y]) pc += 0x0002; }
-void _6XNN() { const uint16_t nn = op & 0x00FF, x = (op & 0x0F00) >> 8; v[x]  = nn; }
-void _7XNN() { const uint16_t nn = op & 0x00FF, x = (op & 0x0F00) >> 8; v[x] += nn; }
-void _8XY0() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x]  = v[y]; }
-void _8XY1() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] |= v[y]; }
-void _8XY2() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] &= v[y]; }
-void _8XY3() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] ^= v[y]; }
-void _8XY4() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] + v[y] > 0xFF ? 0x01 : 0x00; v[x] = v[x] + v[y]; }
-void _8XY5() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] - v[y] < 0x00 ? 0x00 : 0x01; v[x] = v[x] - v[y]; }
-void _8XY7() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[y] - v[x] < 0x00 ? 0x00 : 0x01; v[x] = v[y] - v[x]; }
-void _8XY6() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 0) & 0x01; v[x] = v[y] >> 1; }
-void _8XYE() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 7) & 0x01; v[x] = v[y] << 1; }
-void _9XY0() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; if(v[x] != v[y]) pc += 0x0002; }
-void _ANNN() { const uint16_t nnn = op & 0x0FFF; I = nnn; }
-void _BNNN() { const uint16_t nnn = op & 0x0FFF; pc = nnn + v[0x0]; }
-void _CXNN() { const uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; v[x] = nn & (rand() % 0x100); }
-void _DXYN() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n = (op & 0x000F);
+void _1NNN() { uint16_t nnn = op & 0x0FFF; pc = nnn; }
+void _2NNN() { uint16_t nnn = op & 0x0FFF; s[sp++] = pc; pc = nnn; }
+void _3XNN() { uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; if(v[x] == nn) pc += 0x0002; }
+void _4XNN() { uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; if(v[x] != nn) pc += 0x0002; }
+void _5XY0() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; if(v[x] == v[y]) pc += 0x0002; }
+void _6XNN() { uint16_t nn = op & 0x00FF, x = (op & 0x0F00) >> 8; v[x]  = nn; }
+void _7XNN() { uint16_t nn = op & 0x00FF, x = (op & 0x0F00) >> 8; v[x] += nn; }
+void _8XY0() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x]  = v[y]; }
+void _8XY1() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] |= v[y]; }
+void _8XY2() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] &= v[y]; }
+void _8XY3() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] ^= v[y]; }
+void _8XY4() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] + v[y] > 0xFF ? 0x01 : 0x00; v[x] = v[x] + v[y]; }
+void _8XY5() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] - v[y] < 0x00 ? 0x00 : 0x01; v[x] = v[x] - v[y]; }
+void _8XY7() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[y] - v[x] < 0x00 ? 0x00 : 0x01; v[x] = v[y] - v[x]; }
+void _8XY6() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 0) & 0x01; v[x] = v[y] >> 1; }
+void _8XYE() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 7) & 0x01; v[x] = v[y] << 1; }
+void _9XY0() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; if(v[x] != v[y]) pc += 0x0002; }
+void _ANNN() { uint16_t nnn = op & 0x0FFF; I = nnn; }
+void _BNNN() { uint16_t nnn = op & 0x0FFF; pc = nnn + v[0x0]; }
+void _CXNN() { uint16_t x = (op & 0x0F00) >> 8, nn = op & 0x00FF; v[x] = nn & (rand() % 0x100); }
+void _DXYN() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n = (op & 0x000F);
     uint8_t flag = 0x00;
     for(int i = 0; i < n; i++)
     {
@@ -57,15 +55,15 @@ void _DXYN() { const uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n 
     }
     v[0xF] = flag;
 }
-void _EXA1() { const uint16_t x = (op & 0x0F00) >> 8; const uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
-void _EX9E() { const uint16_t x = (op & 0x0F00) >> 8; const uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
-void _FX07() { const uint16_t x = (op & 0x0F00) >> 8; v[x] = dt; }
-void _FX0A() { const uint16_t x = (op & 0x0F00) >> 8; const uint8_t pressed = input(-1); if(pressed == 0xFF) v[x] = 0x00; else v[x] = pressed; }
-void _FX15() { const uint16_t x = (op & 0x0F00) >> 8; dt = v[x]; }
-void _FX18() { const uint16_t x = (op & 0x0F00) >> 8; st = v[x]; }
-void _FX1E() { const uint16_t x = (op & 0x0F00) >> 8; I += v[x]; }
-void _FX29() { const uint16_t x = (op & 0x0F00) >> 8; I = 5 * v[x]; }
-void _FX33() { const uint16_t x = (op & 0x0F00) >> 8;
+void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
+void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
+void _FX07() { uint16_t x = (op & 0x0F00) >> 8; v[x] = dt; }
+void _FX0A() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input(-1); if(pressed == 0xFF) v[x] = 0x00; else v[x] = pressed; }
+void _FX15() { uint16_t x = (op & 0x0F00) >> 8; dt = v[x]; }
+void _FX18() { uint16_t x = (op & 0x0F00) >> 8; st = v[x]; }
+void _FX1E() { uint16_t x = (op & 0x0F00) >> 8; I += v[x]; }
+void _FX29() { uint16_t x = (op & 0x0F00) >> 8; I = 5 * v[x]; }
+void _FX33() { uint16_t x = (op & 0x0F00) >> 8;
     #define len(array) (signed)(sizeof(array) / sizeof(*array))
     int lookup[] = { 100, 10, 1 };
     for(int i = 0; i < len(lookup); i++)
@@ -85,9 +83,9 @@ void (*opsd[])() = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07, _00
 /******************/ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
 /*                */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
 /*                */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* (\/)           */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* (..)           */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/* ()()           */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/*     CHIP-8     */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/*                */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+/*                */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
 /******************/ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
 void (*exec[])() = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
 void _0___() { (*opsa[op & 0x000F])(); }

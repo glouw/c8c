@@ -25,7 +25,7 @@ $(PROJ): $(OBJS)
 %.o : %.c
 %.o : %.c %.d
 	$(COMP) $(OUTPUT_OPTION) $<
-	$(POST)
+	@$(POST)
 %.d: ;
 
 .PRECIOUS: %.d
