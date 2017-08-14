@@ -4,7 +4,7 @@
 
 struct io
 {
-    void (*init)(FILE* i, FILE* o);
+    void (*init)(FILE* in, FILE* out);
     char (*get)();
     void (*bomb)(const char* message, ...);
     void (*emit)(const char* message, ...);

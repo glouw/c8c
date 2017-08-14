@@ -4,7 +4,7 @@ struct translate
 {
     void (*expression)();
     void (*ident)();
-    void (*print_names)();
+    void (*names)();
 };
 
 extern const struct translate translate;

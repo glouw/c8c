@@ -3,20 +3,33 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-FILE* in;
-FILE* out;
+FILE* i;
+FILE* o;
 
-static void close() { if(in) fclose(in); if(out) fclose(out); }
+static void close()
+{
+    if(i) fclose(i);
+    if(o) fclose(o);
+}
 
-static void init(FILE* i, FILE* o) { in = i; out = o; atexit(close); }
+static void init(FILE* in, FILE* out)
+{
+    atexit(close);
+    i = in;
+    o = out;
+    if(!i) exit(1);
+}
 
-static char get() { return fgetc(in); }
+static char get()
+{
+    return fgetc(i);
+}
 
 static void compose(const char* prefix, const char* message, va_list args)
 {
-    fprintf(out, "%s", prefix);
-    vfprintf(out, message, args);
-    fprintf(out, "\n");
+    fprintf(o, "%s", prefix);
+    vfprintf(o, message, args);
+    fprintf(o, "\n");
 }
 
 static void bomb(const char* message, ...)

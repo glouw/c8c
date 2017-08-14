@@ -2,15 +2,20 @@
 
 #include "feed.h"
 #include "io.h"
+
 #include <ctype.h>
 
 // Register Pointer: Registers make up the stack
 static int rp;
 
 // Single character variable names
-static char names[128];
+static char name[128];
 
-static void print_names() { for(unsigned i = 0; i < sizeof(names); i++) if(isalpha(i)) io.print("%c: %d", i, names[i]); }
+static void names()
+{
+    for(int i = 'a'; isalpha(i); i++)
+        io.print("%c: V%1X", i, name[i]);
+}
 
 static void push() { rp++; }
 static void pull() { rp--; } // Pop
@@ -23,7 +28,7 @@ static void term()
         translate.expression();
         feed.match(')');
     }
-    else io.emit("LD V%1X, 0x%02X", rp, feed.number());
+    else io.emit("LD V%1X,0x%02X", rp, feed.number());
 }
 
 static void operate(const char op)
@@ -34,29 +39,34 @@ static void operate(const char op)
     // Operations associate left to right
     switch(op)
     {
-        case '+': io.emit("ADD V%1X, V%1X", rp - 1, rp); break;
-        case '-': io.emit("SUB V%1X, V%1X", rp - 1, rp); break;
-        case '|': io.emit("OR  V%1X, V%1X", rp - 1, rp); break;
-        case '&': io.emit("AND V%1X, V%1X", rp - 1, rp); break;
-        case '^': io.emit("XOR V%1X, V%1X", rp - 1, rp); break;
+        case '+': io.emit("ADD V%1X,V%1X", rp - 1, rp); break;
+        case '-': io.emit("SUB V%1X,V%1X", rp - 1, rp); break;
+        case '|': io.emit("OR  V%1X,V%1X", rp - 1, rp); break;
+        case '&': io.emit("AND V%1X,V%1X", rp - 1, rp); break;
+        case '^': io.emit("XOR V%1X,V%1X", rp - 1, rp); break;
     }
     pull();
 }
 
 // <Expression> ::= <Term> [<Operation> <Term>]*
-static void expression() { term(); while(feed.isop()) operate(feed.peek()); }
+static void expression()
+{
+    term();
+    while(feed.isop())
+        operate(feed.peek());
+}
 
 // <Ident> ::= <Expression>
 static void ident()
 {
-    feed.match(':');
-    names[(int) feed.name()] = rp;
+    feed.match('!');
+    name[(int) feed.name()] = rp;
     feed.match('=');
     expression();
-    // Saving a name pushes the stack
-    push();
     // Assignments must end with a new line
     feed.match('\n');
+    // Saving a name pushes the stack
+    push();
 }
 
-const struct translate translate = { expression, ident, print_names };
+const struct translate translate = { expression, ident, names };
