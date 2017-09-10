@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-FILE* i;
-FILE* o;
+static FILE* i;
+static FILE* o;
 
 static void close()
 {
