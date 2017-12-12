@@ -1,11 +1,15 @@
 # chip8
 
-make;
+The chip8 platform is a relatively small virtual machine with 30 something opcodes.
 
-see the tests folder for assembled unit test binary files.
+    make;
 
-c8c: compiler (currently a work in progress)
+See the tests folder for unit tests.
 
-emu: emulator
+Directory:
 
-asm: assembler
+    c8c: compiler (currently a work in progress)
+
+    emu: emulator
+
+    asm: assembler
