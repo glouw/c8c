@@ -1,15 +1,10 @@
-# chip8
+# c8c
 
-The chip8 platform is a relatively small virtual machine with 30 something opcodes.
+c8c aims to be a relatively small c-like programming language for the chip8 platform.
 
     make;
 
-See the tests folder for unit tests.
+c8c in itself is currently a work in progress, but you may have a look at the chip8 virtual
+machine and assembler meanwhile.
 
-Directory:
-
-    c8c: compiler (currently a work in progress)
-
-    emu: emulator
-
-    asm: assembler
+The tests folder contains assembly unit tests for the virtual machine.
