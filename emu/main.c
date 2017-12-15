@@ -2,9 +2,15 @@
 #include <time.h>
 #include <ncurses.h>
 
-enum { VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80 };
+enum {
+    VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80
+};
  
-uint64_t vmem[VROWS]; uint16_t pc = START, I, s[SSIZE], op; uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
+uint64_t vmem[VROWS];
+
+uint16_t pc = START, I, s[SSIZE], op;
+
+uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
 
 uint8_t input(const int ms)
 {

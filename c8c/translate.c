@@ -4,6 +4,7 @@
 #include "io.h"
 #include "ident.h"
 
+#include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 
@@ -150,6 +151,25 @@ static void condition()
     }
 }
 
+static void call()
+{
+    char* name = feed.name();
+    io.emit("CALL %s\n", name);
+    feed.match('(');
+    while(feed.peek() != ')')
+    {
+        char* param = feed.name();
+        puts(param);
+        free(param);
+        if(feed.peek() == ')')
+            continue;
+        feed.match(',');
+    }
+    feed.match(')');
+    feed.match(';');
+    free(name);
+}
+
 // <Block> ::= [<Statement>]*
 static void block()
 {
@@ -163,7 +183,7 @@ static void block()
             block();
             break;
         case 'l':
-            identifiers ++;
+            identifiers++;
             identifier();
             break;
         case 'i':
@@ -172,6 +192,8 @@ static void block()
             ifs++;
             break;
         default:
+            /* function call? */
+            call();
             break;
         }
     }
@@ -188,6 +210,7 @@ static void block()
 static void function()
 {
     char* name = feed.name();
+    io.print(";---");
     io.print("%s:", name);
     free(name);
     feed.match('(');
@@ -196,18 +219,12 @@ static void function()
 
 static void definition()
 {
-    switch(feed.peek())
-    {
-        case 'd':
-            feed.matches("def");
-            function();
-            block();
-            io.emit("RET");
-            break;
-        default:
-            io.bomb("expected definition");
-            break;
-    }
+    if(feed.peek() != 'd')
+        io.bomb("expected function definition");
+    feed.matches("def");
+    function();
+    block();
+    io.emit("RET");
 }
 
 // There is no chip8 stack for stack frames,
@@ -237,15 +254,16 @@ static void init()
     io.print("start:");
     io.emit("LD VE,0x%02X", start / width);
     io.emit("CALL main");
-    io.print("_done:");
-    io.emit("JP _done");
+    io.print("DONE:");
+    io.emit("JP DONE");
 }
 
-// <Program> ::= [<Block>]*
+// <Program> ::= [<Definition>]*
 static void program()
 {
     init();
-    while(!feed.end()) definition();
+    while(!feed.end())
+        definition();
 }
 
 const struct translate translate = { program };
