@@ -1,18 +1,16 @@
-def fun()
+def add(a)
 {
+    return 1;
 }
 
 def main()
 {
-    let a = 254 + 1;
-    let b = 0xFF;
-    if(a != b)
-    {
-        let c = 3;
-    }
-    else
-    {
-        let d = 4;
-    }
-    fun(a, b);
+    let d = add(1);
+    add(1);
+    add(1);
+    add(1);
+    add(1);
+    let e = add(1);
+    let f = add(1);
+    let g = add(1);
 }

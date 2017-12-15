@@ -9,6 +9,13 @@ static FILE* i;
 static FILE* o;
 static FILE* e;
 
+static int bytes;
+
+static int size()
+{
+    return bytes;
+}
+
 static void close()
 {
     if(i) fclose(i);
@@ -48,6 +55,7 @@ static void emit(const char* str, ...)
     vfprintf(o, str, args);
     fprintf(o, "\n");
     va_end(args);
+    bytes++;
 }
 
 static void print(const char* str, ...)
@@ -59,4 +67,4 @@ static void print(const char* str, ...)
     va_end(args);
 }
 
-const struct io io = { init, get, bomb, emit, print };
+const struct io io = { init, get, bomb, emit, print, size };

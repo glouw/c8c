@@ -2,15 +2,15 @@
 
 struct feed
 {
-    char* (*name)();
-    int (*number)();
-    void (*init)();
-    int (*isop)();
-    int (*peek)();
+    char* (*name)(void);
+    int (*number)(void);
+    void (*init)(void);
+    int (*isop)(void);
+    int (*peek)(void);
     void (*match)(char x);
-    int (*end)();
+    int (*end)(void);
     void (*matches)(const char* const str);
-    int (*lines)();
+    int (*lines)(void);
 };
 
 extern const struct feed feed;

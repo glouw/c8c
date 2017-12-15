@@ -31,6 +31,29 @@ Node* lookup(char* name)
     return node;
 }
 
+static void call(char* name)
+{
+    // Store the stack frame.
+    io.emit("LD [I],VE");
+    io.emit("ADD VE,0x03");
+    // Copy over any function arguments.
+    feed.match('(');
+    int args = 0;
+    while(feed.peek() != ')')
+    {
+        expression();
+        if(feed.peek() == ')')
+            continue;
+        feed.match(',');
+        rp++;
+        args++;
+    }
+    rp -= args;
+    feed.match(')');
+    io.emit("CALL %s", name);
+    io.emit("LD V%d,VF", rp);
+}
+
 static void term()
 {
     if(feed.peek() == '(')
@@ -45,7 +68,12 @@ static void term()
         if(isalpha(feed.peek()))
         {
             Node* found = lookup(feed.name());
-            io.emit("LD V%1X,V%1X", rp, found->rp);
+            // Call name.
+            if(feed.peek() == '(')
+                call(found->name);
+            // Load name.
+            else
+                io.emit("LD V%1X,V%1X", rp, found->rp);
         }
         // Direct load.
         else
@@ -76,7 +104,26 @@ static void expression()
     term();
     while(feed.isop())
         operate(feed.peek());
-    feed.match(';');
+}
+
+static int function()
+{
+    char* name = feed.name();
+    Node* found = ident.find(name);
+    ident.push(ident.create(name, 0));
+    if(found)
+        io.bomb("%s already defined", name);
+    io.print("%s:", name);
+    feed.match('(');
+    for(int i = 0; feed.peek() != ')'; i++)
+    {
+        ident.push(ident.create(feed.name(), rp++));
+        if(feed.peek() == ')')
+            continue;
+        feed.match(',');
+    }
+    feed.match(')');
+    return rp;
 }
 
 // <Identifier> ::= <Expression>
@@ -91,19 +138,18 @@ static void identifier()
         io.bomb("%s already defined", name);
     feed.match('=');
     expression();
+    feed.match(';');
     rp++;
 }
 
 static void skip(Node* a, char* opcode)
 {
     if(isdigit(feed.peek()))
-        io.emit("%s V%d,0x%02X",
-            opcode, a->rp, feed.number());
+        io.emit("%s V%d,0x%02X", opcode, a->rp, feed.number());
     else
     {
         Node* b = lookup(feed.name());
-        io.emit("%s V%d,V%d",
-            opcode, a->rp, b->rp);
+        io.emit("%s V%d,V%d", opcode, a->rp, b->rp);
     }
 }
 
@@ -143,23 +189,18 @@ static void condition()
     }
 }
 
-static void call()
+static void returner()
 {
-    char* name = feed.name();
-    io.emit("CALL %s\n", name);
-    feed.match('(');
-    while(feed.peek() != ')')
-    {
-        char* param = feed.name();
-        /* use param here */
-        free(param);
-        if(feed.peek() == ')')
-            continue;
-        feed.match(',');
-    }
-    feed.match(')');
+    feed.matches("return");
+    expression();
     feed.match(';');
-    free(name);
+    io.emit("SUB VE,0x03");
+    io.emit("LD VF,V%d", rp);
+    io.emit("LD F,VE");
+    io.emit("LD VE,[I]");
+    // I must be set again because the LD VE, [I]
+    // instruction sets I to the end address of the load.
+    io.emit("LD F,VE");
 }
 
 // <Block> ::= [<Statement>]*
@@ -183,9 +224,12 @@ static void block()
             io.print("EIF%d:", ifs);
             ifs++;
             break;
+        case 'r':
+            returner();
+            break;
         default:
-            /* function call? */
-            call();
+            expression();
+            feed.match(';');
             break;
         }
     }
@@ -198,30 +242,20 @@ static void block()
     }
 }
 
-static void function()
-{
-    char* name = feed.name();
-    io.print(";---");
-    io.print("%s:", name);
-    free(name);
-    feed.match('(');
-    feed.match(')');
-}
-
 static void definition()
 {
     if(feed.peek() != 'd')
         io.bomb("expected function definition");
     feed.matches("def");
-    function();
+    const int args = function();
     block();
-    /*
-     *  Store into VF the return value.
-     *  Decrement VE by 5.
-     *  Load from memory into V0-VE.
-     *  Copy VF to V[rp]
-     */
     io.emit("RET");
+    // Cleanup - just pop, don't care about contents.
+    for(int i = 0; i < args; i++)
+    {
+        rp--;
+        ident.pop();
+    }
 }
 
 // There is no chip8 stack for stack frames,
@@ -247,7 +281,7 @@ static void init()
     const int bytes = 300;
     for(int i = 0; i < bytes; i++)
         io.emit("DB 0x00");
-    const int width = 15;
+    const int width = 10;
     io.print("start:");
     io.emit("LD VE,0x%02X", start / width);
     io.emit("CALL main");
@@ -261,6 +295,7 @@ static void program()
     init();
     while(!feed.end())
         definition();
+    io.print(";%d bytes remain\n", 0xFFF - io.size());
 }
 
 const struct translate translate = { program };
