@@ -1,3 +1,8 @@
+def fun()
+{
+}
+
+def main()
 {
     let a = 255;
     let b = 0xFF;

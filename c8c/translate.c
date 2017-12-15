@@ -185,10 +185,67 @@ static void block()
 
 }
 
+static void function()
+{
+    char* name = feed.name();
+    io.print("%s:", name);
+    free(name);
+    feed.match('(');
+    feed.match(')');
+}
+
+static void definition()
+{
+    switch(feed.peek())
+    {
+        case 'd':
+            feed.matches("def");
+            function();
+            block();
+            io.emit("RET");
+            break;
+        default:
+            io.bomb("expected definition");
+            break;
+    }
+}
+
+// There is no chip8 stack for stack frames,
+// but one can be emulated by statically reserving
+// space from 0x200 onwards. Opcode FX29 can then cleverly
+// be exploited using the sprite pointer due to the fact that sprites
+// one byte wide and five bytes tall, allowing for I to be set by multiples of 5
+// within the range of 0x000 - 0x4FB. Addresses 0x000 to 0x200
+// are reserved for the character sprite data, as well as the supposed
+// interpreter, and 0x4FB is far too large, so addresses
+// 0x200 - 0x32C will be used for the stack.
+//
+// The chip8 uses instructions FX55 and FX65 to write and
+// read registers V0-VX to memory starting at the address value
+// stored in I. Since flag VF is used for flags by the chip8,
+// fifteen registers (V0-VE) are available for the stack frames.
+// VE will be used as the stack frame pointer,
+// starting at 0x200 and ending at 0x32C (300 bytes big).
+static void init()
+{
+    io.print("STACK:");
+    const int start = 0x200;
+    const int bytes = 300;
+    for(int i = 0; i < bytes; i++)
+        io.emit("DB 0x00");
+    const int width = 15;
+    io.print("start:");
+    io.emit("LD VE,0x%02X", start / width);
+    io.emit("CALL main");
+    io.print("_done:");
+    io.emit("JP _done");
+}
+
 // <Program> ::= [<Block>]*
 static void program()
 {
-    while(!feed.end()) block();
+    init();
+    while(!feed.end()) definition();
 }
 
 const struct translate translate = { program };
