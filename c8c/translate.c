@@ -215,13 +215,19 @@ static void definition()
     feed.matches("def");
     function();
     block();
+    /*
+     *  Store into VF the return value.
+     *  Decrement VE by 5.
+     *  Load from memory into V0-VE.
+     *  Copy VF to V[rp]
+     */
     io.emit("RET");
 }
 
 // There is no chip8 stack for stack frames,
 // but one can be emulated by statically reserving
 // space from 0x200 onwards. Opcode FX29 can then cleverly
-// be exploited using the sprite pointer due to the fact that sprites
+// be exploited using the sprite pointer due to the fact that sprites are
 // one byte wide and five bytes tall, allowing for I to be set by multiples of 5
 // within the range of 0x000 - 0x4FB. Addresses 0x000 to 0x200
 // are reserved for the character sprite data, as well as the supposed
