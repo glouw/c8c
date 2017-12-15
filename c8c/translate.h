@@ -2,9 +2,7 @@
 
 struct translate
 {
-    void (*expression)();
-    void (*ident)();
-    void (*names)();
+    void (*program)();
 };
 
 extern const struct translate translate;

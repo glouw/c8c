@@ -1,15 +1,16 @@
 #pragma once
 
-#include <stdbool.h>
-
 struct feed
 {
-    char (*name)();
+    char* (*name)();
     int (*number)();
     void (*init)();
-    bool (*isop)();
-    char (*peek)();
+    int (*isop)();
+    int (*peek)();
     void (*match)(char x);
+    int (*end)();
+    void (*matches)(const char* const str);
+    int (*lines)();
 };
 
 extern const struct feed feed;

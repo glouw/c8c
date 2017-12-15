@@ -1,5 +1,6 @@
 #include "feed.h"
 #include "io.h"
+#include "ident.h"
 #include "translate.h"
 
 int main(int argc, char* argv[])
@@ -8,7 +9,6 @@ int main(int argc, char* argv[])
         return 1;
     io.init(fopen(argv[1], "r"), stdout);
     feed.init();
-    translate.ident();
-    translate.ident();
-    translate.names();
+    ident.init();
+    translate.program();
 }

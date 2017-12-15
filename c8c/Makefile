@@ -8,6 +8,7 @@ PROJ = c8c
 SRCS = feed.c
 SRCS+= io.c
 SRCS+= main.c
+SRCS+= ident.c
 SRCS+= translate.c
 
 # Warnings flags
@@ -20,7 +21,7 @@ CFLAGS+= -g
 CFLAGS+= -Ofast -flto
 
 # Architecture flags
-ARCH = -march=native -m32
+ARCH = -march=native
 
 # Linker flags
 LDFLAGS =
