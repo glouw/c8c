@@ -18,6 +18,19 @@ static int elses = 0;
 // BNF recursive requires these functions entirely available to this file.
 static void expression(), block();
 
+Node* lookup(char* name)
+{
+    Node* node = ident.find(name);
+    if(!node)
+    {
+        io.print("%s not defined", name);
+        free(name);
+        io.bomb("exiting...");
+    }
+    free(name);
+    return node;
+}
+
 static void term()
 {
     if(feed.peek() == '(')
@@ -31,15 +44,7 @@ static void term()
         // Name lookup.
         if(isalpha(feed.peek()))
         {
-            char* name = feed.name();
-            const Node* const found = ident.find(name);
-            if(!found)
-            {
-                io.print("%s: not defined", name);
-                free(name);
-                io.bomb("exiting...");
-            }
-            free(name);
+            Node* found = lookup(feed.name());
             io.emit("LD V%1X,V%1X", rp, found->rp);
         }
         // Direct load.
@@ -87,19 +92,6 @@ static void identifier()
     feed.match('=');
     expression();
     rp++;
-}
-
-Node* lookup(char* name)
-{
-    Node* node = ident.find(name);
-    if(!node)
-    {
-        io.print("%s not defined", name);
-        free(name);
-        io.bomb("exiting...");
-    }
-    free(name);
-    return node;
 }
 
 static void skip(Node* a, char* opcode)
@@ -159,7 +151,7 @@ static void call()
     while(feed.peek() != ')')
     {
         char* param = feed.name();
-        puts(param);
+        /* use param here */
         free(param);
         if(feed.peek() == ')')
             continue;
@@ -204,7 +196,6 @@ static void block()
         rp--;
         ident.pop();
     }
-
 }
 
 static void function()

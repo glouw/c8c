@@ -4,7 +4,7 @@ def fun()
 
 def main()
 {
-    let a = 255;
+    let a = 254 + 1;
     let b = 0xFF;
     if(a != b)
     {
