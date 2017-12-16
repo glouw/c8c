@@ -9,11 +9,11 @@
 #include <stdlib.h>
 
 // Register Pointer: Registers make up the stack
-static int rp = 0;
+static int rp;
 
 // Branching label record.
-static int ifs = 0;
-static int elses = 0;
+static int ifs;
+static int elses;
 
 // BNF recursive requires these functions entirely available to this file.
 static void expression(), block();
@@ -31,27 +31,43 @@ Node* lookup(char* name)
     return node;
 }
 
-static void call(char* name)
+static void push()
 {
-    // Store the stack frame.
+    io.emit("LD F,VE");
     io.emit("LD [I],VE");
     io.emit("ADD VE,0x03");
-    // Copy over any function arguments.
+}
+
+static void pop()
+{
+    io.emit("SUB VE,0x03");
+    io.emit("LD F,VE");
+    io.emit("LD VE,[I]");
+    io.emit("LD VF,V%d", rp); /* Return value. */
+    io.emit("RET");
+}
+
+static void call(char* name)
+{
+    // Push arguments.
     feed.match('(');
     int args = 0;
     while(feed.peek() != ')')
     {
         expression();
-        if(feed.peek() == ')')
-            continue;
-        feed.match(',');
         rp++;
         args++;
+        if(feed.peek() == ')')
+            break;
+        else feed.match(',');
     }
     rp -= args;
     feed.match(')');
+    for(int i = 0; i < args; i++)
+        io.emit("LD V%1X,V%1X", i, rp + i);
+    push();
     io.emit("CALL %s", name);
-    io.emit("LD V%d,VF", rp);
+    io.emit("LD V%d,VF", rp); /* Get return value. */
 }
 
 static void term()
@@ -106,7 +122,7 @@ static void expression()
         operate(feed.peek());
 }
 
-static int function()
+static void function()
 {
     char* name = feed.name();
     Node* found = ident.find(name);
@@ -115,15 +131,14 @@ static int function()
         io.bomb("%s already defined", name);
     io.print("%s:", name);
     feed.match('(');
-    for(int i = 0; feed.peek() != ')'; i++)
+    while(feed.peek() != ')')
     {
         ident.push(ident.create(feed.name(), rp++));
         if(feed.peek() == ')')
-            continue;
-        feed.match(',');
+            break;
+        else feed.match(',');
     }
     feed.match(')');
-    return rp;
 }
 
 // <Identifier> ::= <Expression>
@@ -189,25 +204,11 @@ static void condition()
     }
 }
 
-static void returner()
-{
-    feed.matches("return");
-    expression();
-    feed.match(';');
-    io.emit("SUB VE,0x03");
-    io.emit("LD VF,V%d", rp);
-    io.emit("LD F,VE");
-    io.emit("LD VE,[I]");
-    // I must be set again because the LD VE, [I]
-    // instruction sets I to the end address of the load.
-    io.emit("LD F,VE");
-}
-
 // <Block> ::= [<Statement>]*
 static void block()
 {
     feed.match('{');
-    int identifiers = 0;
+    int idents = 0;
     while(feed.peek() != '}')
     {
         switch(feed.peek())
@@ -215,27 +216,31 @@ static void block()
         case '{':
             block();
             break;
-        case 'l':
-            identifiers++;
-            identifier();
-            break;
         case 'i':
             condition();
             io.print("EIF%d:", ifs);
             ifs++;
             break;
         case 'r':
-            returner();
+            feed.matches("return");
+            expression();
+            feed.match(';');
+            pop();
+            break;
+        case 'l':
+            idents++;
+            identifier();
             break;
         default:
+            puts("expression");
             expression();
             feed.match(';');
             break;
         }
     }
     feed.match('}');
-    // Cleanup - just pop, don't care about contents.
-    for(int i = 0; i < identifiers; i++)
+    // Pop identifiers.
+    for(int i = 0; i < idents; i++)
     {
         rp--;
         ident.pop();
@@ -247,11 +252,11 @@ static void definition()
     if(feed.peek() != 'd')
         io.bomb("expected function definition");
     feed.matches("def");
-    const int args = function();
+    function();
     block();
-    io.emit("RET");
-    // Cleanup - just pop, don't care about contents.
-    for(int i = 0; i < args; i++)
+    pop();
+    // Pop arguments
+    while(rp)
     {
         rp--;
         ident.pop();
@@ -281,10 +286,12 @@ static void init()
     const int bytes = 300;
     for(int i = 0; i < bytes; i++)
         io.emit("DB 0x00");
-    const int width = 10;
     io.print("start:");
-    io.emit("LD VE,0x%02X", start / width);
+    // VE will always hold the previous block.
+    io.emit("LD VE,0x%02X", start / 15);
+    push();
     io.emit("CALL main");
+    // Will never leave start.
     io.print("DONE:");
     io.emit("JP DONE");
 }
@@ -295,7 +302,6 @@ static void program()
     init();
     while(!feed.end())
         definition();
-    io.print(";%d bytes remain\n", 0xFFF - io.size());
 }
 
 const struct translate translate = { program };

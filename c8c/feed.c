@@ -6,25 +6,53 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+/* String for mixed asm. */
+static char* mixed;
+/* Line pointer. */
+static int lp;
+/* Line buffer size. */
+static int lbs = 8;
+/* Current look ahead char. */
 static int now;
-static int ln = 1;
+/* Line count. */
+static int lc = 1;
 
-static int lines()
+static void append(const char ch)
 {
-    return ln;
+    mixed[lp++] = ch;
+    if(lp == lbs)
+        mixed = (char*) realloc(mixed, lbs *= 2);
 }
 
 static void spin()
 {
     now = io.get();
+    append(now);
     if(now == '\n')
-        ln++;
-    if(isspace(now))
-        spin();
+    {
+        append('\0');
+        printf(";%s\n", mixed);
+        lp = 0;
+        lc++;
+    }
+    // Eat white space.
+    if(isspace(now)) spin();
+}
+
+static int lines()
+{
+    return lc;
+}
+
+static void shutdown()
+{
+    free(mixed);
 }
 
 static void init()
 {
+    atexit(shutdown);
+    mixed = (char*) malloc(sizeof(char) * lbs);
     spin();
 }
 
@@ -113,8 +141,11 @@ static int number()
         case 'x':
             match('x');
             return hex(num, sizeof(num));
+        case ';':
+            break;
         default:
             io.bomb("octal numbers not supported (for good reason)");
+            break;
         }
     }
     return dec(num, sizeof(num));
