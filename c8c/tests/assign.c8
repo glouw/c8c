@@ -9,4 +9,5 @@ def main()
     let b = 3;
     let c = fun(3 << a, 1 + 2);
     let d = 4;
+    let e = d;
 }

@@ -114,6 +114,8 @@ static int dec(char num[], const int len)
     const int d = strtol(num, NULL, 10);
     if(d > 0xFF)
         io.bomb("chip8 only supports 8 bit unsigned numbers");
+    if(strcmp(num, "\0\0\0") == 0)
+        io.bomb("expected a number");
     return d % 256;
 }
 
@@ -127,6 +129,8 @@ static int hex(char num[], const int len)
     const int h = strtol(num, NULL, 16);
     if(h > 0xFF)
         io.bomb("chip8 only supports 8 bit unsigned numbers");
+    if(strcmp(num, "\0\0\0") == 0)
+        io.bomb("expected a number");
     return h % 256;
 }
 
@@ -144,7 +148,7 @@ static int number()
         case ';':
             break;
         default:
-            io.bomb("octal numbers not supported (for good reason)");
+            io.bomb("octal numbers not supported");
             break;
         }
     }
