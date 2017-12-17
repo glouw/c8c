@@ -70,8 +70,6 @@ static void call(char* name)
     io.emit("LD V%d,VF", rp); /* Get return value. */
 }
 
-Node* last;
-
 static void term()
 {
     if(feed.peek() == '(')
@@ -82,10 +80,10 @@ static void term()
     }
     else
     {
-        last = lookup(feed.name());
         // Name lookup.
         if(isalpha(feed.peek()))
         {
+            Node* last = lookup(feed.name());
             // Assign name.
             if(feed.peek() == '=')
             {
