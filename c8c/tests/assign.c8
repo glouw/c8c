@@ -7,10 +7,6 @@ def fun(a, b)
 def main()
 {
     let a = 1;
-    let c = 3;
-    let d = 4;
-    let e = fun(1, 1);
-    let f = fun(d, e);
-    fun(1, 1);
-    return 0;
+    let b = 3;
+    fun(a = (a + 1) - 1, b);
 }

@@ -43,7 +43,7 @@ static void pop()
     io.emit("SUB VE,0x03");
     io.emit("LD F,VE");
     io.emit("LD VE,[I]");
-    io.emit("LD VF,V%d", rp); /* Return value. */
+    io.emit("LD VF,V%d", rp); /* Load return value. */
     io.emit("RET");
 }
 
@@ -63,9 +63,9 @@ static void call(char* name)
     }
     rp -= args;
     feed.match(')');
+    push();
     for(int i = 0; i < args; i++)
         io.emit("LD V%1X,V%1X", i, rp + i);
-    push();
     io.emit("CALL %s", name);
     io.emit("LD V%d,VF", rp); /* Get return value. */
 }
@@ -84,7 +84,15 @@ static void term()
         if(isalpha(feed.peek()))
         {
             Node* found = lookup(feed.name());
+            // Assign name.
+            if(feed.peek() == '=')
+            {
+                feed.match('=');
+                expression();
+                io.emit("LD V%1X,V%1X", found->rp, rp);
+            }
             // Call name.
+            else
             if(feed.peek() == '(')
                 call(found->name);
             // Load name.
@@ -110,6 +118,19 @@ static void operate(const int op)
         case '|': io.emit("OR  V%1X,V%1X", rp - 1, rp); break;
         case '&': io.emit("AND V%1X,V%1X", rp - 1, rp); break;
         case '^': io.emit("XOR V%1X,V%1X", rp - 1, rp); break;
+        // What about these guys?
+        // <<
+        // >>
+        // And these guys?
+        // +=
+        // -=
+        // |=
+        // &=
+        // ^=
+        // >>=
+        // <<=
+        // ++
+        // --
     }
     rp--;
 }
@@ -169,6 +190,11 @@ static void skip(Node* a, char* opcode)
 }
 
 // if(a == b)
+// if(a != b)
+// These comparisons are not treated as stack entities
+// as the chip8 uses a specific Skip if Equal or Skip if Not
+// Equal opcode for its branching. There is no less than or greater
+// than comparison operators.
 static void condition()
 {
     feed.matches("if");
@@ -176,11 +202,13 @@ static void condition()
     if(!isalpha(feed.peek()))
         io.bomb("expected name before comparison operator");
     Node* a = lookup(feed.name());
+    // Skip if Equal.
     if(feed.peek() == '=')
     {
         feed.matches("==");
         skip(a, "SE");
     }
+    // Skip if Not Equal
     else
     {
         feed.matches("!=");
@@ -232,7 +260,6 @@ static void block()
             identifier();
             break;
         default:
-            puts("expression");
             expression();
             feed.match(';');
             break;
