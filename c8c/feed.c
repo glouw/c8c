@@ -8,12 +8,16 @@
 
 /* String for mixed asm. */
 static char* mixed;
+
 /* Line pointer. */
 static int lp;
+
 /* Line buffer size. */
 static int lbs = 8;
+
 /* Current look ahead char. */
 static int now;
+
 /* Line count. */
 static int lc = 1;
 
@@ -55,9 +59,15 @@ static void init()
     spin();
 }
 
-int isname(char name)
+int isname(const char name)
 {
     return isalnum(name) || name == '_';
+}
+
+// End statement.
+int isends()
+{
+    return now == ',' || now == ')' || now == ';';
 }
 
 static char* name()
@@ -76,11 +86,6 @@ static char* name()
     }
     str[i] = '\0';
     return str;
-}
-
-static int isop()
-{
-    return (int) strchr("+-|&^<>", now);
 }
 
 static int peek()
@@ -150,5 +155,5 @@ static int number()
 }
 
 const struct feed feed = {
-    name, number, init, isop, peek, match, end, matches, lines
+    name, number, init, peek, match, end, matches, lines, isends
 };
