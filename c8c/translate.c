@@ -11,9 +11,13 @@
 // Register Pointer: Registers make up the stack
 static int rp;
 
+static void push() { if(rp++ > 0xD) io.bomb("register stack overflow"); }
+static void pull() { if(rp-- < 0x0) io.bomb("register stack underflow"); }
+
 // Branching label record.
 static int ifs;
 static int elses;
+static int whiles;
 
 // BNF recursion requires these functions entirely available to this file.
 static void expression(), block();
@@ -32,7 +36,7 @@ static Node* lookup(char* name)
 }
 
 // Pushes the stack to the stack frame.
-static void push()
+static void spush()
 {
     io.emit("LD F,VE");
     io.emit("LD [I],VE");
@@ -41,7 +45,7 @@ static void push()
 }
 
 // Pops a stack from the stack frame.
-static void pop()
+static void spop()
 {
     // Decrements the stack frame pointer.
     io.emit("SUB VE,0x03");
@@ -53,7 +57,7 @@ static void pop()
     io.emit("RET");
 }
 
-static void call(char* name)
+static void call(Node* node)
 {
     // Compute any argument expressions on local stack.
     feed.match('(');
@@ -61,21 +65,23 @@ static void call(char* name)
     while(feed.peek() != ')')
     {
         expression();
-        rp++;
+        push();
         args++;
         if(feed.peek() == ')')
             break;
         else feed.match(',');
     }
+    if(args != node->rp)
+        io.bomb("argument mismatch");
     rp -= args;
     feed.match(')');
     // Push a copy of the local stack for the return.
-    push();
+    spush();
     // Move arguments.
     for(int i = 0; i < args; i++)
         io.emit("LD V%1X,V%1X", i, rp + i);
     // Call.
-    io.emit("CALL %s", name);
+    io.emit("CALL %s", node->name);
     // Get return value once returned.
     io.emit("LD V%d,VF", rp);
 }
@@ -106,7 +112,7 @@ static void nload(Node* node)
 static void nameop()
 {
     Node* node = lookup(feed.name());
-    feed.peek() == '=' ? assign(node) : feed.peek() == '(' ? call(node->name) : nload(node);
+    feed.peek() == '=' ? assign(node) : feed.peek() == '(' ? call(node) : nload(node);
 }
 
 // Value load.
@@ -124,7 +130,7 @@ static void term()
 // Operates on a BNF term.
 static void operation()
 {
-    rp++;
+    push();
     int op = feed.peek();
     feed.match(op);
     if(op == '<' && feed.peek() == '<') feed.match('<'), op = 'l';
@@ -146,7 +152,7 @@ static void operation()
             io.bomb("chip8: operator (>) not supported");
             break;
     }
-    rp--;
+    pull();
 }
 
 // <Expression> ::= <Term> [<Operation> <Term>]*;
@@ -162,35 +168,44 @@ static void function()
 {
     char* name = feed.name();
     Node* found = ident.find(name);
-    ident.push(ident.create(name, 0));
+    Node* where = ident.push(ident.create(name, 0));
     if(found)
         io.bomb("%s already defined", name);
     io.print("%s:", name);
     feed.match('(');
+    const int stamp = rp;
     while(feed.peek() != ')')
     {
-        ident.push(ident.create(feed.name(), rp++));
+        ident.push(ident.create(feed.name(), rp));
+        push();
         if(feed.peek() == ')')
             break;
         else feed.match(',');
     }
     feed.match(')');
+    where->rp = rp - stamp;
 }
 
 // <Identifier> ::= <Expression>
 static void identifier()
 {
     feed.matches("let");
-    char* name = feed.name();
-    Node* found = ident.find(name);
-    // Push anyway for exit time cleanup if not found.
-    ident.push(ident.create(name, rp));
-    if(found)
-        io.bomb("%s already defined", name);
-    feed.match('=');
-    expression();
+    while(feed.peek() != ';')
+    {
+        char* name = feed.name();
+        Node* found = ident.find(name);
+        // Push anyway for exit time cleanup if not found.
+        ident.push(ident.create(name, rp));
+        if(found)
+            io.bomb("%s already defined", name);
+        feed.match('=');
+        expression();
+        push();
+        if(feed.peek() == ';')
+            break;
+        else feed.match(',');
+    }
     feed.match(';');
-    rp++;
 }
 
 static void vcmp(Node* a, char* opcode)
@@ -253,6 +268,23 @@ static void condition()
     }
 }
 
+static void wloop()
+{
+    int end = whiles;
+    feed.matches("while");
+    io.print("WH%d:", whiles++);
+    feed.match('(');
+    if(!isalpha(feed.peek()))
+        io.bomb("names are required before the comparison operator");
+    Node* a = lookup(feed.name());
+    feed.peek() == '=' ? se(a) : sne(a);
+    io.emit("JP EWH%d", end);
+    feed.match(')');
+    block();
+    io.emit("JP WH%d", end);
+    io.print("EWH%d:", end);
+}
+
 // <Block> ::= [<Statement>]*
 static void block()
 {
@@ -277,12 +309,16 @@ static void block()
             feed.matches("return");
             expression();
             feed.match(';');
-            pop();
+            spop();
             break;
         // Let statements for identifiers.
         case 'l':
             idents++;
             identifier();
+            break;
+        // While loop.
+        case 'w':
+            wloop();
             break;
         // Default expressions without identifiers.
         default:
@@ -295,7 +331,7 @@ static void block()
     // Pop identifiers.
     for(int i = 0; i < idents; i++)
     {
-        rp--;
+        pull();
         ident.pop();
     }
 }
@@ -308,11 +344,11 @@ static void definition()
     feed.matches("def");
     function();
     block();
-    pop();
+    spop();
     // Pop arguments.
     while(rp)
     {
-        rp--;
+        pull();
         ident.pop();
     }
 }
@@ -344,7 +380,7 @@ static void init()
     io.print("start:");
     const int payload = 15;
     io.emit("LD VE,0x%02X", start / payload);
-    push();
+    spush();
     io.emit("CALL main");
     // Will never leave start.
     io.print("DONE:");

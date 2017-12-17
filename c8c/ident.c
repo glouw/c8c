@@ -36,10 +36,12 @@ static Node* create(char* name, const int rp)
     return n;
 }
 
-static void push(Node* const node)
+static Node* push(Node* const node)
 {
     node->next = nodes;
     nodes = node;
+    // For reference.
+    return nodes;
 }
 
 static Node pop()
