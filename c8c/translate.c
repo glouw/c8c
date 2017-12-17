@@ -15,10 +15,10 @@ static int rp;
 static int ifs;
 static int elses;
 
-// BNF recursive requires these functions entirely available to this file.
+// BNF recursion requires these functions entirely available to this file.
 static void expression(), block();
 
-Node* lookup(char* name)
+static Node* lookup(char* name)
 {
     Node* node = ident.find(name);
     if(!node)
@@ -31,25 +31,31 @@ Node* lookup(char* name)
     return node;
 }
 
+// Pushes the stack to the stack frame.
 static void push()
 {
     io.emit("LD F,VE");
     io.emit("LD [I],VE");
+    // Incrememnts the stack frame pointer.
     io.emit("ADD VE,0x03");
 }
 
+// Pops a stack from the stack frame.
 static void pop()
 {
+    // Decrements the stack frame pointer.
     io.emit("SUB VE,0x03");
     io.emit("LD F,VE");
     io.emit("LD VE,[I]");
-    io.emit("LD VF,V%d", rp); /* Load return value. */
+    // Load return value.
+    io.emit("LD VF,V%d", rp);
+    // Return.
     io.emit("RET");
 }
 
 static void call(char* name)
 {
-    // Push arguments.
+    // Compute any argument expressions on local stack.
     feed.match('(');
     int args = 0;
     while(feed.peek() != ')')
@@ -63,49 +69,60 @@ static void call(char* name)
     }
     rp -= args;
     feed.match(')');
+    // Push a copy of the local stack for the return.
     push();
+    // Move arguments.
     for(int i = 0; i < args; i++)
         io.emit("LD V%1X,V%1X", i, rp + i);
+    // Call.
     io.emit("CALL %s", name);
-    io.emit("LD V%d,VF", rp); /* Get return value. */
+    // Get return value once returned.
+    io.emit("LD V%d,VF", rp);
 }
 
+// Forced expression
+static void fexpression()
+{
+    feed.match('(');
+    expression();
+    feed.match(')');
+}
+
+// Name assignment.
+static void assign(Node* node)
+{
+    feed.match('=');
+    expression();
+    io.emit("LD V%1X,V%1X", node->rp, rp);
+}
+
+// Name load
+static void nload(Node* node)
+{
+    io.emit("LD V%1X,V%1X", rp, node->rp);
+}
+
+// Name operation.
+static void nameop()
+{
+    Node* node = lookup(feed.name());
+    feed.peek() == '=' ? assign(node) : feed.peek() == '(' ? call(node->name) : nload(node);
+}
+
+// Value load.
+static void vload()
+{
+    io.emit("LD V%1X,0x%02X", rp, feed.number());
+}
+
+// Computes a BNF term.
 static void term()
 {
-    if(feed.peek() == '(')
-    {
-        feed.match('(');
-        expression();
-        feed.match(')');
-    }
-    else
-    {
-        // Name lookup.
-        if(isalpha(feed.peek()))
-        {
-            Node* last = lookup(feed.name());
-            // Assign name.
-            if(feed.peek() == '=')
-            {
-                feed.match('=');
-                expression();
-                io.emit("LD V%1X,V%1X", last->rp, rp);
-            }
-            // Call name.
-            else
-            if(feed.peek() == '(')
-                call(last->name);
-            // Load name.
-            else
-                io.emit("LD V%1X,V%1X", rp, last->rp);
-        }
-        // Direct load.
-        else
-            io.emit("LD V%1X,0x%02X", rp, feed.number());
-    }
+    feed.peek() == '(' ? fexpression() : isalpha(feed.peek()) ? nameop() : vload();
 }
 
-static void operate()
+// Operates on a BNF term.
+static void operation()
 {
     rp++;
     int op = feed.peek();
@@ -136,10 +153,11 @@ static void operate()
 static void expression()
 {
     term();
-    while(feed.isop())
-        operate();
+    while(feed.isop()) operation();
 }
 
+// Defines a function.
+// def name(args, ...)
 static void function()
 {
     char* name = feed.name();
@@ -175,54 +193,60 @@ static void identifier()
     rp++;
 }
 
-static void skip(Node* a, char* opcode)
+static void vcmp(Node* a, char* opcode)
 {
-    if(isdigit(feed.peek()))
-        io.emit("%s V%d,0x%02X", opcode, a->rp, feed.number());
-    else
-    {
-        Node* b = lookup(feed.name());
-        io.emit("%s V%d,V%d", opcode, a->rp, b->rp);
-    }
+    expression();
+    io.emit("%s V%d,V%d", opcode, a->rp, rp);
+}
+
+static void ncmp(Node* a, char* opcode)
+{
+    Node* b = lookup(feed.name());
+    io.emit("%s V%d,V%d", opcode, a->rp, b->rp);
+}
+
+static void compare(Node* a, char* opcode)
+{
+    isalpha(feed.peek()) ? ncmp(a, opcode) : vcmp(a, opcode);
+}
+
+static void se(Node* a)
+{
+    feed.matches("=="), compare(a, "SE");
+}
+
+static void sne(Node* a)
+{
+    feed.matches("!="), compare(a, "SNE");
 }
 
 // if(a == b)
 // if(a != b)
 // These comparisons are not treated as stack entities
-// as the chip8 uses a specific Skip if Equal or Skip if Not
-// Equal opcode for its branching. There is no less than or greater
-// than comparison operators.
+// as the chip8 uses specific Skip if Equal (SE) or Skip if Not
+// Equal (SNE) opcode for branching.
+// There is no less than or greater than comparison operators.
 static void condition()
 {
     feed.matches("if");
     feed.match('(');
     if(!isalpha(feed.peek()))
-        io.bomb("expected name before comparison operator");
+        io.bomb("names are required before the comparison operator");
     Node* a = lookup(feed.name());
     // Skip if Equal.
-    if(feed.peek() == '=')
-    {
-        feed.matches("==");
-        skip(a, "SE");
-    }
-    // Skip if Not Equal
-    else
-    {
-        feed.matches("!=");
-        skip(a, "SNE");
-    }
+    feed.peek() == '=' ? se(a) : sne(a);
     feed.match(')');
-    // First "if" statment
+    // First "if" statment.
     io.emit("JP ELS%d", elses);
     block();
     io.emit("JP EIF%d", ifs);
-    // First "else" statement
+    // First "else" statement.
     io.print("ELS%d:", elses);
     if(feed.peek() == 'e')
     {
         feed.matches("else");
         elses++;
-        // Continued "else if" statements
+        // Continued "else if" statements.
         if(feed.peek() == 'i')
             condition();
         else block();
@@ -238,24 +262,29 @@ static void block()
     {
         switch(feed.peek())
         {
+        // Blocks within blocks.
         case '{':
             block();
             break;
+        // If statements.
         case 'i':
             condition();
             io.print("EIF%d:", ifs);
             ifs++;
             break;
+        // Return statements.
         case 'r':
             feed.matches("return");
             expression();
             feed.match(';');
             pop();
             break;
+        // Let statements for identifiers.
         case 'l':
             idents++;
             identifier();
             break;
+        // Default expressions without identifiers.
         default:
             expression();
             feed.match(';');
@@ -271,6 +300,7 @@ static void block()
     }
 }
 
+// Defines a top level definition.
 static void definition()
 {
     if(feed.peek() != 'd')
@@ -279,7 +309,7 @@ static void definition()
     function();
     block();
     pop();
-    // Pop arguments
+    // Pop arguments.
     while(rp)
     {
         rp--;
@@ -289,9 +319,9 @@ static void definition()
 
 // There is no chip8 stack for stack frames,
 // but one can be emulated by statically reserving
-// space from 0x200 onwards. Opcode FX29 can then cleverly
-// be exploited using the sprite pointer due to the fact that sprites are
-// one byte wide and five bytes tall, allowing for I to be set by multiples of 5
+// space from 0x200 onwards. Due to the fact that sprites are
+// one byte wide and five bytes tall, opcode FX29 can
+// be exploited to set I by multiples of 5
 // within the range of 0x000 - 0x4FB. Addresses 0x000 to 0x200
 // are reserved for the character sprite data, as well as the supposed
 // interpreter, and 0x4FB is far too large, so addresses
@@ -300,8 +330,9 @@ static void definition()
 // The chip8 uses instructions FX55 and FX65 to write and
 // read registers V0-VX to memory starting at the address value
 // stored in I. Since flag VF is used for flags by the chip8,
-// fifteen registers (V0-VE) are available for the stack frames.
-// VE will be used as the stack frame pointer,
+// 15 registers (V0-VE) are available for the stack frames.
+// This register payload is a multiple of 5,
+// and VE will be used as the stack frame pointer,
 // starting at 0x200 and ending at 0x32C (300 bytes big).
 static void init()
 {
@@ -311,8 +342,8 @@ static void init()
     for(int i = 0; i < bytes; i++)
         io.emit("DB 0x00");
     io.print("start:");
-    // VE will always hold the previous block.
-    io.emit("LD VE,0x%02X", start / 15);
+    const int payload = 15;
+    io.emit("LD VE,0x%02X", start / payload);
     push();
     io.emit("CALL main");
     // Will never leave start.
@@ -324,8 +355,10 @@ static void init()
 static void program()
 {
     init();
-    while(!feed.end())
-        definition();
+    while(!feed.end()) definition();
+    // The program size is printed at the very end.
+    // Two bytes per instruction.
+    io.print(";%d / %d bytes used\n", io.size(), 0x1000);
 }
 
 const struct translate translate = { program };

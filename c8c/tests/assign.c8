@@ -1,13 +1,25 @@
-def fun(a, b)
+def fun(arg, b)
 {
-    return a + b;
+    return arg + b;
 }
 
 def main()
 {
-    let a = 1;
-    let b = 3;
-    let c = fun(3 << a, 1 + 2);
-    let d = 4;
-    let e = d;
+    let andy = 0;
+    let b = 2;
+    let c = fun(3 << andy, 1 + 2);
+    if(andy == 3 + 1)
+    {
+        fun(0, 1);
+    }
+    else
+    if(andy != 2 + 33)
+    {
+        fun(1, 2);
+    }
+    else
+    {
+        fun(2, 3);
+        fun(2, 3);
+    }
 }

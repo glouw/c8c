@@ -2,7 +2,7 @@
 
 struct translate
 {
-    void (*program)();
+    void (*program)(void);
 };
 
 extern const struct translate translate;

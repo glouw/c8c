@@ -26,12 +26,11 @@ static void append(const char ch)
 
 static void spin()
 {
-    now = io.get();
-    append(now);
+    append(now = io.get());
     if(now == '\n')
     {
         append('\0');
-        printf(";%s\n", mixed);
+        printf(";%s", mixed);
         lp = 0;
         lc++;
     }
@@ -140,17 +139,12 @@ static int number()
     if(peek() == '0')
     {
         match('0');
-        switch(peek())
+        if(peek() == 'x')
         {
-        case 'x':
             match('x');
             return hex(num, sizeof(num));
-        case ';':
-            break;
-        default:
-            io.bomb("octal numbers not supported");
-            break;
         }
+        else return 0;
     }
     return dec(num, sizeof(num));
 }

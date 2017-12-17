@@ -55,7 +55,8 @@ static void emit(const char* str, ...)
     vfprintf(o, str, args);
     fprintf(o, "\n");
     va_end(args);
-    bytes++;
+    // Each instruction is two bytes wide.
+    bytes += 2;
 }
 
 static void print(const char* str, ...)

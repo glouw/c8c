@@ -1,4 +1,4 @@
-ASM = ../asm/asm
+ASM = ../asm
 BIN = xxd
 
 BINS = registers.bin flow.bin subroutines.bin skips.bin

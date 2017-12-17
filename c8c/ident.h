@@ -11,10 +11,10 @@ struct node
 
 struct ident
 {
-    void (*init)();
+    void (*init)(void);
     Node* (*create)(char* name, const int rp);
     void (*push)(Node* const node);
-    Node (*pop)();
+    Node (*pop)(void);
     Node* (*find)(char* name);
 };
 

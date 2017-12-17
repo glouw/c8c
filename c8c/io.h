@@ -5,7 +5,7 @@
 struct io
 {
     void (*init)(FILE* in, FILE* out);
-    int (*get)();
+    int (*get)(void);
     void (*bomb)(const char* message, ...);
     void (*emit)(const char* message, ...);
     void (*print)(const char* message, ...);
