@@ -81,7 +81,7 @@ static char* name()
 
 static int isop()
 {
-    return (int) strchr("+-|&^", now);
+    return (int) strchr("+-|&^<>", now);
 }
 
 static int peek()

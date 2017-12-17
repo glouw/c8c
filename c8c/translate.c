@@ -70,6 +70,8 @@ static void call(char* name)
     io.emit("LD V%d,VF", rp); /* Get return value. */
 }
 
+Node* last;
+
 static void term()
 {
     if(feed.peek() == '(')
@@ -80,24 +82,24 @@ static void term()
     }
     else
     {
+        last = lookup(feed.name());
         // Name lookup.
         if(isalpha(feed.peek()))
         {
-            Node* found = lookup(feed.name());
             // Assign name.
             if(feed.peek() == '=')
             {
                 feed.match('=');
                 expression();
-                io.emit("LD V%1X,V%1X", found->rp, rp);
+                io.emit("LD V%1X,V%1X", last->rp, rp);
             }
             // Call name.
             else
             if(feed.peek() == '(')
-                call(found->name);
+                call(last->name);
             // Load name.
             else
-                io.emit("LD V%1X,V%1X", rp, found->rp);
+                io.emit("LD V%1X,V%1X", rp, last->rp);
         }
         // Direct load.
         else
@@ -105,12 +107,14 @@ static void term()
     }
 }
 
-static void operate(const int op)
+static void operate()
 {
     rp++;
+    int op = feed.peek();
     feed.match(op);
+    if(op == '<' && feed.peek() == '<') feed.match('<'), op = 'l';
+    if(op == '>' && feed.peek() == '>') feed.match('>'), op = 'r';
     term();
-    // Operations associate left to right
     switch(op)
     {
         case '+': io.emit("ADD V%1X,V%1X", rp - 1, rp); break;
@@ -118,19 +122,14 @@ static void operate(const int op)
         case '|': io.emit("OR  V%1X,V%1X", rp - 1, rp); break;
         case '&': io.emit("AND V%1X,V%1X", rp - 1, rp); break;
         case '^': io.emit("XOR V%1X,V%1X", rp - 1, rp); break;
-        // What about these guys?
-        // <<
-        // >>
-        // And these guys?
-        // +=
-        // -=
-        // |=
-        // &=
-        // ^=
-        // >>=
-        // <<=
-        // ++
-        // --
+        case 'r': io.emit("SHR V%1X,V%1X", rp - 1, rp); break;
+        case 'l': io.emit("SHL V%1X,V%1X", rp - 1, rp); break;
+        case '<':
+            io.bomb("chip8: operator (<) not supported");
+            break;
+        case '>':
+            io.bomb("chip8: operator (>) not supported");
+            break;
     }
     rp--;
 }
@@ -140,7 +139,7 @@ static void expression()
 {
     term();
     while(feed.isop())
-        operate(feed.peek());
+        operate();
 }
 
 static void function()

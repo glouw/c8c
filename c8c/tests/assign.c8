@@ -1,12 +1,12 @@
 def fun(a, b)
 {
-    let c = a + b;
-    return c;
+    return a + b;
 }
 
 def main()
 {
     let a = 1;
     let b = 3;
-    fun(a = (a + 1) - 1, b);
+    let c = fun(3 << a, 1 + 2);
+    let d = 4;
 }
