@@ -8,18 +8,26 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+// BNF recursion requires these functions entirely available to this file.
+static void expression(), block(), term();
+
 // Register Pointer: Registers make up the stack.
 static int rp;
-static void push() { if(rp++ > 0xD) io.bomb("register stack overflow");  }
-static void pull() { if(rp-- < 0x0) io.bomb("register stack underflow"); }
 
 // Branching label record.
 static int ifs;
 static int elses;
 static int whiles;
 
-// BNF recursion requires these functions entirely available to this file.
-static void expression(), block();
+static void push()
+{
+    if(rp++ > 0xD) io.bomb("register stack overflow"); 
+}
+
+static void pull()
+{
+    if(rp-- < 0x0) io.bomb("register stack underflow");
+}
 
 static Node* lookup(char* const name)
 {
@@ -56,10 +64,16 @@ static void spop()
     io.emit("RET");
 }
 
+static void store(const int args)
+{
+    spush();
+    for(int i = 0; i < args; i++)
+        io.emit("LD V%1X,V%1X", i, rp + i);
+}
+
 static void call(Node* const node)
 {
     // Compute any argument expressions on local stack.
-    feed.match('(');
     int args = 0;
     while(feed.peek() != ')')
     {
@@ -73,81 +87,172 @@ static void call(Node* const node)
     if(args != node->rp)
         io.bomb("argument mismatch");
     rp -= args;
-    feed.match(')');
-    // Push a copy of the local stack for the return.
-    spush();
-    // Move arguments.
-    for(int i = 0; i < args; i++)
-        io.emit("LD V%1X,V%1X", i, rp + i);
+    store(args);
     // Call.
     io.emit("CALL %s", node->name);
     // Get return value once returned.
     io.emit("LD V%d,VF", rp);
 }
 
-// Forced expression.
-static void fexpression()
+static void twoscomp()
 {
-    feed.match('(');
-    expression();
-    feed.match(')');
+    term();
+    io.emit("XOR V%1X,0xFF", rp);
+    io.emit("ADD V%1X,0x01", rp);
 }
 
-// Name assignment.
-static void assign(Node* node)
+static void incpre()
 {
-    feed.match('=');
+    Node* const node = lookup(feed.name());
+    io.emit("ADD V%1X,0x01", node->rp);
+    io.emit("LD  V%1X,V%1x", rp, node->rp);
+}
+
+static void decpre()
+{
+    Node* const node = lookup(feed.name());
+    io.emit("SUB V%1X,0x01", node->rp);
+    io.emit("LD  V%1X,V%1x", rp, node->rp);
+}
+
+static void invert()
+{
+    term();
+    io.emit("XOR V%1X,0xFF", rp);
+}
+
+static void nload()
+{
+    io.emit("LD V%1X,0x%X", rp, feed.number());
+}
+
+static void incpost(Node* const node)
+{
+    io.emit("LD  V%1X,V%1x", rp, node->rp);
+    io.emit("ADD V%1X,0x01", node->rp);
+}
+
+static void decpost(Node* const node)
+{
+    io.emit("LD  V%1X,V%1x", rp, node->rp);
+    io.emit("SUB V%1X,0x01", node->rp);
+}
+
+static void assign(Node* const node)
+{
     expression();
     io.emit("LD V%1X,V%1X", node->rp, rp);
 }
 
-// Name load.
-static void nload(Node* node)
+static void load(Node* const node)
 {
     io.emit("LD V%1X,V%1X", rp, node->rp);
 }
 
-// Name operation.
-static void nameop()
+static void inc(Node* const node)
 {
-    Node* const node = lookup(feed.name());
-    feed.peek() == '=' ? assign(node) : feed.peek() == '(' ? call(node) : nload(node);
+    if(isalpha(feed.peek()))
+    {
+        Node* const other = lookup(feed.name());
+        io.emit("ADD V%1X,V%1X", node->rp, other->rp);
+        io.emit("LD  V%1X,V%1x", rp, node->rp);
+    }
+    else
+    {
+        io.emit("ADD V%1X,0x%X", node->rp, feed.number());
+        io.emit("LD  V%1X,V%1x", rp, node->rp);
+    }
 }
 
-// Value load.
-static void vload()
+static void name()
 {
-    io.emit("LD V%1X,0x%02X", rp, feed.number());
+    Node* const node = lookup(feed.name());
+    switch(feed.peek())
+    {
+    case '=':
+        feed.match('=');
+        assign(node);
+        break;
+    case '(':
+        feed.match('(');
+        call(node);
+        feed.match(')');
+        break;
+    case '+':
+        feed.match('+');
+        if(feed.peek() == '+')
+        {
+            feed.match('+');
+            incpost(node);
+        }
+        else
+        if(feed.peek() == '=')
+        {
+            feed.match('=');
+            inc(node);
+        }
+        break;
+    case '-':
+        feed.match('-');
+        if(feed.peek() == '-')
+        {
+            feed.match('-');
+            decpost(node);
+        }
+        break;
+    default:
+        load(node);
+        break;
+    }
+}
+
+static void number()
+{
+    switch(feed.peek())
+    {
+    case '(':
+        feed.match('(');
+        expression();
+        feed.match(')');
+        break;
+    case '~':
+        feed.match('~');
+        invert();
+        break;
+    case '+':
+        feed.match('+');
+        if(feed.peek() == '+')
+        {
+            feed.match('+');
+            incpre();
+        }
+        else
+        if(feed.peek() == '=')
+        {
+            feed.match('=');
+            term();
+        }
+        else term();
+        break;
+    case '-':
+        feed.match('-');
+        if(feed.peek() == '-')
+        {
+            feed.match('-');
+            decpre();
+        }
+        else twoscomp();
+        break;
+    default:
+        nload();
+        break;
+    }
 }
 
 // Computes a BNF term.
 static void term()
 {
-    feed.peek() == '(' ? fexpression() : isalpha(feed.peek()) ? nameop() : vload();
-}
-
-char* gop(const int op)
-{
-    switch(op)
-    {
-        case '+': return "ADD";
-        case '-': return "SUB";
-        case '|': return "OR ";
-        case '&': return "AND";
-        case '^': return "XOR";
-        case 'r': return "SHR";
-        case 'l': return "SHL";
-        case '<':
-            io.bomb("chip8: operator (<) not supported");
-            break;
-        case '>':
-            io.bomb("chip8: operator (>) not supported");
-            break;
-        default:
-            io.bomb("operation (%c) not supported", op);
-            break;
-    }
-    return NULL;
+    isalpha(feed.peek()) ? name() : number();
 }
 
 // Operates on a BNF term.
@@ -158,8 +263,37 @@ static void operation()
     feed.match(op);
     if(op == '<' && feed.peek() == '<') feed.match('<'), op = 'l';
     if(op == '>' && feed.peek() == '>') feed.match('>'), op = 'r';
+    if(op == '!' && feed.peek() == '=') feed.match('='), op = 'n';
+    if(op == '=' && feed.peek() == '=') feed.match('='), op = 'e';
     term();
-    io.emit("%s V%1X,V%1X", gop(op), rp - 1, rp);
+    switch(op)
+    {
+    case '+': io.emit("ADD V%1X,V%1X", rp - 1, rp); break;
+    case '-': io.emit("SUB V%1X,V%1X", rp - 1, rp); break;
+    case '|': io.emit("OR  V%1X,V%1X", rp - 1, rp); break;
+    case '&': io.emit("AND V%1X,V%1X", rp - 1, rp); break;
+    case '^': io.emit("XOR V%1X,V%1X", rp - 1, rp); break;
+    case 'r': io.emit("SHR V%1X,V%1X", rp - 1, rp); break; /* >> */
+    case 'l': io.emit("SHL V%1X,V%1X", rp - 1, rp); break; /* << */
+    case '<':
+        io.emit("SUB V%1X,V%1X", rp - 1, rp);
+        io.emit("LD V%1X,VF", rp);
+        break;
+    case '>':
+        io.emit("SUBN V%1X,V%1X", rp - 1, rp);
+        io.emit("LD V%1X,VF", rp);
+        break;
+    case 'n': /* != */
+        io.emit("XOR V%1X,V%1X", rp - 1, rp);
+        break;
+    case 'e': /* == */
+        io.emit("XOR V%1X,V%1X", rp - 1, rp);
+        io.emit("XOR V%1X,0xFF", rp);
+        break;
+    default:
+        io.bomb("operation (%c) not supported", op);
+        break;
+    }
     pull();
 }
 
@@ -216,54 +350,15 @@ static void function()
     where->rp = rp - stamp;
 }
 
-static void vcmp(const Node* a, const char* opcode)
-{
-    expression();
-    io.emit("%s V%d,V%d", opcode, a->rp, rp);
-}
-
-static void ncmp(const Node* a, const char* opcode)
-{
-    const Node* b = lookup(feed.name());
-    io.emit("%s V%d,V%d", opcode, a->rp, b->rp);
-}
-
-static void cmp(const Node* a, const char* opcode)
-{
-    isalpha(feed.peek()) ? ncmp(a, opcode) : vcmp(a, opcode);
-}
-
-static void se(Node* a)
-{
-    feed.matches("=="), cmp(a, "SE");
-}
-
-static void sne(Node* a)
-{
-    feed.matches("!="), cmp(a, "SNE");
-}
-
-static void comparison(Node* a)
-{
-    feed.peek() == '=' ? se(a) : feed.peek() == '!' ? sne(a) : io.bomb("chip8 supports (!=) (==)");
-}
-
-// if(a == b)
-// if(a != b)
-// These comparisons are not treated as stack entities
-// as the chip8 uses specific Skip if Equal (SE) or Skip if Not
-// Equal (SNE) opcode for branching.
-// There is no less than or greater than comparison operators.
+// Executes a block if not zero.
 static void condition()
 {
     feed.matches("if");
     feed.match('(');
-    if(!isalpha(feed.peek()))
-        io.bomb("names are required before the comparison operator");
-    Node* a = lookup(feed.name());
-    comparison(a);
+    expression();
     feed.match(')');
     // First "if" statment.
+    io.emit("SNE V%1X,0x00", rp);
     io.emit("JP ELS%d", elses);
     block();
     io.emit("JP EIF%d", ifs);
@@ -286,10 +381,7 @@ static void wloop()
     feed.matches("while");
     io.print("WH%d:", whiles++);
     feed.match('(');
-    if(!isalpha(feed.peek()))
-        io.bomb("names are required before the comparison operator");
-    Node* a = lookup(feed.name());
-    comparison(a);
+    expression();
     feed.match(')');
     io.emit("JP EWH%d", end);
     block();
@@ -318,8 +410,11 @@ static void block()
             break;
         // Return statements.
         case 'r':
+            puts("here");
             feed.matches("return");
+            puts("here");
             expression();
+            puts("here");
             feed.match(';');
             spop();
             break;
@@ -406,7 +501,7 @@ static void program()
     while(!feed.end()) definition();
     // The program size is printed at the very end.
     // Two bytes per instruction.
-    io.print(";%d / %d bytes used\n", io.size(), 0x1000);
+    io.print("%s;%d / %d bytes used%s\n", GRN, io.size(), 0x1000, NRM);
 }
 
 const struct translate translate = { program };

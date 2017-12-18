@@ -40,9 +40,9 @@ static void bomb(const char* str, ...)
 {
     va_list args;
     va_start(args, str);
-    fprintf(stderr, "error: line %d: ", feed.lines());
+    fprintf(stderr, "%serror: line %d: ", RED, feed.lines());
     vfprintf(stderr, str, args);
-    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", NRM);
     va_end(args);
     exit(1);
 }

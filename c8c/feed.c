@@ -34,7 +34,7 @@ static void spin()
     if(now == '\n')
     {
         append('\0');
-        printf(";%s", mixed);
+        io.print("%s;%s%s", YEL, mixed, NRM);
         lp = 0;
         lc++;
     }
