@@ -15,8 +15,8 @@ static int lp;
 /* Line buffer size. */
 static int lbs = 8;
 
-/* Current look ahead char. */
-static int now;
+/* Current look ahead chars. */
+static int now[2];
 
 /* Line count. */
 static int lc = 1;
@@ -30,8 +30,11 @@ static void append(const char ch)
 
 static void spin()
 {
-    append(now = io.get());
-    if(now == '\n')
+    now[0] = now[1];
+    now[1] = io.get();
+    if(now[0] != '\n')
+        append(now[0]);
+    if(now[0] == '\n')
     {
         append('\0');
         io.print("%s;%s%s", YEL, mixed, NRM);
@@ -39,7 +42,7 @@ static void spin()
         lc++;
     }
     // Eat white space.
-    if(isspace(now)) spin();
+    if(isspace(now[0])) spin();
 }
 
 static int lines()
@@ -56,6 +59,7 @@ static void init()
 {
     atexit(shutdown);
     mixed = (char*) malloc(sizeof(char) * lbs);
+    now[1] = io.get();
     spin();
 }
 
@@ -67,21 +71,21 @@ int isname(const char name)
 // End statement.
 int isends()
 {
-    return now == ',' || now == ')' || now == ';';
+    return now[0] == ',' || now[0] == ')' || now[0] == ';';
 }
 
 static char* name()
 {
-    if(!isalpha(now))
-        io.bomb("expected name, not '%c'", now);
+    if(!isalpha(now[0]))
+        io.bomb("expected name, not '%c'", now[0]);
     int size = 8;
     char* str = (char*) malloc(sizeof(char) * size);
     int i = 0;
-    while(isname(now))
+    while(isname(now[0]))
     {
         if(i == size - 1)
             str = (char*) realloc(str, size *= 2);
-        str[i++] = now;
+        str[i++] = now[0];
         spin();
     }
     str[i] = '\0';
@@ -90,17 +94,22 @@ static char* name()
 
 static int peek()
 {
-    return now;
+    return now[0];
+}
+
+static int farpeek()
+{
+    return now[1];
 }
 
 static int end()
 {
-    return peek() == EOF;
+    return farpeek() == EOF;
 }
 
 static void match(const char x)
 {
-    now == x ? spin() : io.bomb("expected %c", x);
+    now[0] == x ? spin() : io.bomb("expected %c", x);
 }
 
 static void matches(const char* const str)
@@ -110,9 +119,9 @@ static void matches(const char* const str)
 
 static int dec(char num[], const int len)
 {
-    for(int i = 0; i < len && isdigit(now); i++)
+    for(int i = 0; i < len && isdigit(now[0]); i++)
     {
-        num[i] = now;
+        num[i] = now[0];
         spin();
     }
     const int d = strtol(num, NULL, 10);
@@ -125,9 +134,9 @@ static int dec(char num[], const int len)
 
 static int hex(char num[], const int len)
 {
-    for(int i = 0; i < len && isxdigit(now); i++)
+    for(int i = 0; i < len && isxdigit(now[0]); i++)
     {
-        num[i] = now;
+        num[i] = now[0];
         spin();
     }
     const int h = strtol(num, NULL, 16);
@@ -155,5 +164,5 @@ static int number()
 }
 
 const struct feed feed = {
-    name, number, init, peek, match, end, matches, lines, isends
+    name, number, init, peek, match, end, matches, lines, isends, farpeek
 };

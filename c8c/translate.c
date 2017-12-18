@@ -179,24 +179,22 @@ static void name()
         feed.match(')');
         break;
     case '+':
-        feed.match('+');
-        if(feed.peek() == '+')
+        if(feed.farpeek() == '+')
         {
-            feed.match('+');
+            feed.matches("++");
             incpost(node);
         }
         else
-        if(feed.peek() == '=')
+        if(feed.farpeek() == '=')
         {
-            feed.match('=');
+            feed.matches("+=");
             inc(node);
         }
         break;
     case '-':
-        feed.match('-');
-        if(feed.peek() == '-')
+        if(feed.farpeek() == '-')
         {
-            feed.match('-');
+            feed.matches("--");
             decpost(node);
         }
         break;
@@ -220,25 +218,23 @@ static void number()
         invert();
         break;
     case '+':
-        feed.match('+');
-        if(feed.peek() == '+')
+        if(feed.farpeek() == '+')
         {
-            feed.match('+');
+            feed.matches("++");
             incpre();
         }
         else
-        if(feed.peek() == '=')
+        if(feed.farpeek() == '=')
         {
-            feed.match('=');
+            feed.matches("+=");
             term();
         }
         else term();
         break;
     case '-':
-        feed.match('-');
-        if(feed.peek() == '-')
+        if(feed.farpeek() == '-')
         {
-            feed.match('-');
+            feed.matches("--");
             decpre();
         }
         else twoscomp();
@@ -410,11 +406,8 @@ static void block()
             break;
         // Return statements.
         case 'r':
-            puts("here");
             feed.matches("return");
-            puts("here");
             expression();
-            puts("here");
             feed.match(';');
             spop();
             break;

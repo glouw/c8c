@@ -1,13 +1,18 @@
 def add(a, b)
 {
-    return a + b;
+    let c = a + b += 1;
+    let d = a + b++;
 }
 
 def main()
 {
     let a = 1;
     let b = 1;
-    let c = add(a, b);
-    a += 1;
-    let d = 3 + (a += 1);
+    a++;
+    a++;
+    a++;
+    a++;
+    a++;
+    a--;
+    a--;
 }
