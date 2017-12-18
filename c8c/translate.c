@@ -75,12 +75,12 @@ static void call(Node* const node)
 {
     // Compute any argument expressions on local stack.
     int args = 0;
-    while(feed.peek() != ')')
+    while(feed.peek(0) != ')')
     {
         expression();
         push();
         args++;
-        if(feed.peek() == ')')
+        if(feed.peek(0) == ')')
             break;
         else feed.match(',');
     }
@@ -151,145 +151,231 @@ static void load(Node* const node)
 
 static void inc(Node* const node)
 {
-    if(isalpha(feed.peek()))
-    {
-        Node* const other = lookup(feed.name());
-        io.emit("ADD V%1X,V%1X", node->rp, other->rp);
-        io.emit("LD  V%1X,V%1x", rp, node->rp);
-    }
-    else
-    {
-        io.emit("ADD V%1X,0x%X", node->rp, feed.number());
-        io.emit("LD  V%1X,V%1x", rp, node->rp);
-    }
+    expression();
+    io.emit("ADD V%1X,V%1X", node->rp, rp);
+}
+
+static void dec(Node* const node)
+{
+    expression();
+    io.emit("SUB V%1X,V%1X", node->rp, rp);
+}
+
+static void shlas(Node* const node)
+{
+    expression();
+    io.emit("SHL V%1X,V%1X", node->rp, rp);
+}
+
+static void shras(Node* const node)
+{
+    expression();
+    io.emit("SHR V%1X,V%1X", node->rp, rp);
 }
 
 static void name()
 {
     Node* const node = lookup(feed.name());
-    switch(feed.peek())
+    if(feed.peek(0) == '='
+    && feed.peek(1) != '=')
     {
-    case '=':
         feed.match('=');
         assign(node);
-        break;
-    case '(':
+    }
+    else
+    if(feed.peek(0) == '(')
+    {
         feed.match('(');
         call(node);
         feed.match(')');
-        break;
-    case '+':
-        if(feed.farpeek() == '+')
+    }
+    else
+    if(feed.peek(0) == '+')
+    {
+        if(feed.peek(1) == '+')
         {
             feed.matches("++");
             incpost(node);
         }
         else
-        if(feed.farpeek() == '=')
+        if(feed.peek(1) == '=')
         {
             feed.matches("+=");
             inc(node);
         }
-        break;
-    case '-':
-        if(feed.farpeek() == '-')
+    }
+    else
+    if(feed.peek(0) == '-')
+    {
+        if(feed.peek(1) == '-')
         {
             feed.matches("--");
             decpost(node);
         }
-        break;
-    default:
-        load(node);
-        break;
+        else
+        if(feed.peek(1) == '=')
+        {
+            feed.matches("-=");
+            dec(node);
+        }
     }
+    else
+    if(feed.peek(0) == '<'
+    && feed.peek(1) == '<'
+    && feed.peek(2) == '=')
+    {
+        feed.matches("<<=");
+        shlas(node);
+    }
+    else
+    if(feed.peek(0) == '>'
+    && feed.peek(1) == '>'
+    && feed.peek(2) == '=')
+    {
+        feed.matches(">>=");
+        shras(node);
+    }
+    else load(node);
 }
 
 static void number()
 {
-    switch(feed.peek())
+    if(feed.peek(0) == '(')
     {
-    case '(':
         feed.match('(');
         expression();
         feed.match(')');
-        break;
-    case '~':
+    }
+    else
+    if(feed.peek(0) == '~')
+    {
         feed.match('~');
         invert();
-        break;
-    case '+':
-        if(feed.farpeek() == '+')
+    }
+    else
+    if(feed.peek(0) == '+')
+    {
+        if(feed.peek(1) == '+')
         {
             feed.matches("++");
             incpre();
         }
         else
-        if(feed.farpeek() == '=')
         {
-            feed.matches("+=");
+            feed.match('+');
             term();
         }
-        else term();
-        break;
-    case '-':
-        if(feed.farpeek() == '-')
+    }
+    else
+    if(feed.peek(0) == '-')
+    {
+        if(feed.peek(1) == '-')
         {
             feed.matches("--");
             decpre();
         }
-        else twoscomp();
-        break;
-    default:
-        nload();
-        break;
+        else
+        {
+            feed.match('-');
+            twoscomp();
+        }
     }
+    else nload();
 }
 
 // Computes a BNF term.
 static void term()
 {
-    isalpha(feed.peek()) ? name() : number();
+    isalpha(feed.peek(0)) ? name() : number();
 }
 
-// Operates on a BNF term.
+static int table(const int a, const int b, const int c)
+{
+    if(a == '>' && b == '>' && c != '=') { feed.matches(">>"); return 0; }
+    if(a == '<' && b == '<' && c != '=') { feed.matches("<<"); return 1; }
+    if(a == '=' && b == '=') { feed.matches("=="); return 2; }
+    if(a == '!' && b == '=') { feed.matches("!="); return 3; }
+    if(a == '+' && b != '=') { feed.match('+'); return  4; }
+    if(a == '-' && b != '=') { feed.match('-'); return  5; }
+    if(a == '|' && b != '=') { feed.match('|'); return  6; }
+    if(a == '&' && b != '=') { feed.match('&'); return  7; }
+    if(a == '^' && b != '=') { feed.match('^'); return  8; }
+    if(a == '<' && b != '=') { feed.match('<'); return  9; }
+    if(a == '>' && b != '=') { feed.match('>'); return 10; }
+    /* Not found. */
+    return -1;
+}
+
+static void shr()
+{
+    io.emit("SHR V%1X,V%1X", rp - 1, rp);
+}
+
+static void shl()
+{
+    io.emit("SHL V%1X,V%1X", rp - 1, rp);
+}
+
+static void eql()
+{
+    io.emit("XOR V%1X,V%1X", rp - 1, rp);
+    io.emit("XOR V%1X,0xFF", rp - 1);
+}
+
+static void neql()
+{
+    io.emit("XOR V%1X,V%1X", rp - 1, rp);
+}
+
+static void add()
+{
+    io.emit("ADD V%1X,V%1X", rp - 1, rp);
+}
+
+static void sub()
+{
+    io.emit("SUB V%1X,V%1X", rp - 1, rp);
+}
+
+static void or()
+{
+    io.emit("OR V%1X,V%1X", rp - 1, rp);
+}
+
+static void and()
+{
+    io.emit("AND V%1X,V%1X", rp - 1, rp);
+}
+
+static void xor()
+{
+    io.emit("XOR V%1X,V%1X", rp - 1, rp);
+}
+
+static void lt()
+{
+    io.emit("SUB V%1X,V%1X", rp - 1, rp);
+    io.emit("LD V%1X,VF", rp);
+}
+
+static void gt()
+{
+    io.emit("SUBN V%1X,V%1X", rp - 1, rp);
+    io.emit("LD V%1X,VF", rp);
+}
+
+static void (*ops[])() = {
+    shr, shl, eql, neql, add, sub, or, and, xor, lt, gt
+};
+
 static void operation()
 {
     push();
-    int op = feed.peek();
-    feed.match(op);
-    if(op == '<' && feed.peek() == '<') feed.match('<'), op = 'l';
-    if(op == '>' && feed.peek() == '>') feed.match('>'), op = 'r';
-    if(op == '!' && feed.peek() == '=') feed.match('='), op = 'n';
-    if(op == '=' && feed.peek() == '=') feed.match('='), op = 'e';
+    const int which = table(feed.peek(0), feed.peek(1), feed.peek(2));
+    if(which == -1)
+        io.bomb("no such operation");
     term();
-    switch(op)
-    {
-    case '+': io.emit("ADD V%1X,V%1X", rp - 1, rp); break;
-    case '-': io.emit("SUB V%1X,V%1X", rp - 1, rp); break;
-    case '|': io.emit("OR  V%1X,V%1X", rp - 1, rp); break;
-    case '&': io.emit("AND V%1X,V%1X", rp - 1, rp); break;
-    case '^': io.emit("XOR V%1X,V%1X", rp - 1, rp); break;
-    case 'r': io.emit("SHR V%1X,V%1X", rp - 1, rp); break; /* >> */
-    case 'l': io.emit("SHL V%1X,V%1X", rp - 1, rp); break; /* << */
-    case '<':
-        io.emit("SUB V%1X,V%1X", rp - 1, rp);
-        io.emit("LD V%1X,VF", rp);
-        break;
-    case '>':
-        io.emit("SUBN V%1X,V%1X", rp - 1, rp);
-        io.emit("LD V%1X,VF", rp);
-        break;
-    case 'n': /* != */
-        io.emit("XOR V%1X,V%1X", rp - 1, rp);
-        break;
-    case 'e': /* == */
-        io.emit("XOR V%1X,V%1X", rp - 1, rp);
-        io.emit("XOR V%1X,0xFF", rp);
-        break;
-    default:
-        io.bomb("operation (%c) not supported", op);
-        break;
-    }
+    ops[which]();
     pull();
 }
 
@@ -304,7 +390,7 @@ static void expression()
 static void identifier()
 {
     feed.matches("let");
-    while(feed.peek() != ';')
+    while(feed.peek(0) != ';')
     {
         char* name = feed.name();
         Node* found = ident.find(name);
@@ -315,7 +401,7 @@ static void identifier()
         feed.match('=');
         expression();
         push();
-        if(feed.peek() == ';')
+        if(feed.peek(0) == ';')
             break;
         else feed.match(',');
     }
@@ -334,11 +420,11 @@ static void function()
     io.print("%s:", name);
     feed.match('(');
     const int stamp = rp;
-    while(feed.peek() != ')')
+    while(feed.peek(0) != ')')
     {
         ident.push(ident.create(feed.name(), rp));
         push();
-        if(feed.peek() == ')')
+        if(feed.peek(0) == ')')
             break;
         else feed.match(',');
     }
@@ -360,12 +446,12 @@ static void condition()
     io.emit("JP EIF%d", ifs);
     // First "else" statement.
     io.print("ELS%d:", elses);
-    if(feed.peek() == 'e')
+    if(feed.peek(0) == 'e')
     {
         feed.matches("else");
         elses++;
         // Continued "else if" statements.
-        if(feed.peek() == 'i')
+        if(feed.peek(0) == 'i')
             condition();
         else block();
     }
@@ -390,9 +476,9 @@ static void block()
 {
     feed.match('{');
     int idents = 0;
-    while(feed.peek() != '}')
+    while(feed.peek(0) != '}')
     {
-        switch(feed.peek())
+        switch(feed.peek(0))
         {
         // Blocks within blocks.
         case '{':
@@ -439,7 +525,7 @@ static void block()
 // Defines a top level definition.
 static void definition()
 {
-    if(feed.peek() != 'd')
+    if(feed.peek(0) != 'd')
         io.bomb("expected function definition");
     feed.matches("def");
     function();

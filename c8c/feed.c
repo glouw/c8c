@@ -16,7 +16,7 @@ static int lp;
 static int lbs = 8;
 
 /* Current look ahead chars. */
-static int now[2];
+static int now[3];
 
 /* Line count. */
 static int lc = 1;
@@ -31,7 +31,8 @@ static void append(const char ch)
 static void spin()
 {
     now[0] = now[1];
-    now[1] = io.get();
+    now[1] = now[2];
+    now[2] = io.get();
     if(now[0] != '\n')
         append(now[0]);
     if(now[0] == '\n')
@@ -59,7 +60,9 @@ static void init()
 {
     atexit(shutdown);
     mixed = (char*) malloc(sizeof(char) * lbs);
-    now[1] = io.get();
+    now[2] = io.get();
+    now[1] = now[2];
+    now[2] = io.get();
     spin();
 }
 
@@ -92,19 +95,14 @@ static char* name()
     return str;
 }
 
-static int peek()
+static int peek(const int x)
 {
-    return now[0];
-}
-
-static int farpeek()
-{
-    return now[1];
+    return now[x];
 }
 
 static int end()
 {
-    return farpeek() == EOF;
+    return peek(2) == EOF;
 }
 
 static void match(const char x)
@@ -150,10 +148,10 @@ static int hex(char num[], const int len)
 static int number()
 {
     char num[] = "\0\0\0"; /* Long enough to support 8 bit unsigned integers */
-    if(peek() == '0')
+    if(peek(0) == '0')
     {
         match('0');
-        if(peek() == 'x')
+        if(peek(0) == 'x')
         {
             match('x');
             return hex(num, sizeof(num));
@@ -164,5 +162,5 @@ static int number()
 }
 
 const struct feed feed = {
-    name, number, init, peek, match, end, matches, lines, isends, farpeek
+    name, number, init, peek, match, end, matches, lines, isends
 };
