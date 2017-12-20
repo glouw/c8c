@@ -1,15 +1,11 @@
 # Compiler and standard
-CC = gcc -std=c99
+CC = gcc -std=gnu99
 
 # Project name
 PROJ = c8c
 
 # Source files
-SRCS = feed.c
-SRCS+= io.c
-SRCS+= main.c
-SRCS+= ident.c
-SRCS+= translate.c
+SRCS = main.c
 
 # Warnings flags
 CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
@@ -18,7 +14,7 @@ CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
 CFLAGS+= -g
 
 # Optimization flags
-CFLAGS+= -Ofast -flto
+CFLAGS+= -Og -flto
 
 # Architecture flags
 ARCH = -march=native
