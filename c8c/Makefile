@@ -1,5 +1,5 @@
 # Compiler and standard
-CC = gcc -std=gnu99
+CC = gcc -std=c99
 
 # Project name
 PROJ = c8c

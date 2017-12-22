@@ -1,3 +1,10 @@
 let a = 1;
-let b = a = 2;
-let c = -a++ + --b + 1 - b++;
+let b = a -= (1 - 1) - 1 ;
+let c = -- a;
+let d = ++a;
+let e = a ++;
+let f = ~a-- ;
+let g = 1 << 2;
+let h = 2 >> 3;
+let i = a >>= b;
+let j = b <<= b;
