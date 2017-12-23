@@ -5,7 +5,7 @@ CC = gcc -std=c99
 PROJ = c8c
 
 # Source files
-SRCS = main.c
+SRCS = main.c io.c str.c compile.c
 
 # Warnings flags
 CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
