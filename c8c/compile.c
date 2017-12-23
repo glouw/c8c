@@ -9,6 +9,8 @@
 
 static int rp;
 
+static int label;
+
 static char* names[16];
 
 static char* term();
@@ -62,6 +64,51 @@ static int isndef(char* name)
     return 1;
 }
 
+// Chain operators.
+static void _add() { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
+static void _sub() { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
+static void _shl() { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
+static void _shr() { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
+static void _and() { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
+static void _or()  { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
+static void _xor() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
+static void _pad() {
+    io.print("\tJP L%1X", label);
+    io.print("\tLD V%1X,0x00", rp - 1);
+    io.print("\tJP L%1X", label + 1);
+    io.print("L%1X:", label);
+    io.print("\tLD V%1X,0x01", rp - 1);
+    io.print("L%1X:", label + 1);
+    label += 2;
+}
+static void _neql()
+{
+    io.print("\tSE V%1X,V%1X", rp - 1, rp);
+    _pad();
+}
+static void _eql()
+{
+    io.print("\tSNE V%1X,V%1X", rp - 1, rp);
+    _pad();
+}
+static void _lt()
+{
+    io.print("\tSUBN V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD V%1X,VF", rp - 1);
+}
+static void _gt()
+{
+    io.print("\tSUB V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD V%1X,VF", rp - 1);
+}
+static void _lteql()
+{
+    _gt();
+}
+static void _gteql()
+{
+    _lt();
+}
 // L-value unary operators.
 static void _dec(char* lv) { io.print("\tSUB V%1X,0x01", gdef(lv)); }
 static void _inc(char* lv) { io.print("\tADD V%1X,0x01", gdef(lv)); }
@@ -73,46 +120,12 @@ static void _neg()
     io.print("\tADD V%1X,0x01", rp);
 }
 static void _inv() { io.print("\tXOR V%1X,0xFF", rp); }
-
-// Chain operators.
-static void _add()  { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
-static void _sub()  { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
-static void _shl()  { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
-static void _shr()  { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
-static void _and()  { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
-static void _or()   { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
-static void _xor()  { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
-static void _neql() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
-static void _eql()
+static void _not()
 {
-    io.print("\tXOR V%1X,V%1X", rp - 1, rp);
-    io.print("\tXOR V%1X,0xFF", rp - 1);
-}
-static void _lt()
-{
-    io.print("\tSUBN V%1X,V%1X", rp - 1, rp);
-    io.print("\tLD   V%1X,VF"  , rp - 1);
-}
-static void _gt()
-{
-    io.print("\tSUB V%1X,V%1X", rp - 1, rp);
-    io.print("\tLD  V%1X,VF"  , rp - 1);
-}
-static void _lteql()
-{
-    io.print("\tLD  V%1X,V%1X", rp + 1, rp - 1);
-    _lt();
-    io.print("\tXOR V%1X,V%1X", rp + 1, rp);
-    io.print("\tXOR V%1X,0xFF", rp + 1);
-    io.print("\tOR  V%1X,V%1X", rp - 1, rp + 1);
-}
-static void _gteql()
-{
-    io.print("\tLD  V%1X,V%1X", rp + 1, rp - 1);
-    _gt();
-    io.print("\tXOR V%1X,V%1X", rp + 1, rp);
-    io.print("\tXOR V%1X,0xFF", rp + 1);
-    io.print("\tOR  V%1X,V%1X", rp - 1, rp + 1);
+    rp++;
+    io.print("\tLD V%1X,0x00", rp);
+    _neql();
+    rp--;
 }
 // L-value operators.
 static void _addeql(char* lv) { io.print("\tADD V%1X,V%1X", gdef(lv), rp); _add(); }
@@ -134,6 +147,14 @@ static char* inc()
     lcheck(lv, "++");
     _inc(lv);
     _lname(lv);
+    return lv;
+}
+
+static char* not()
+{
+    io.match('!');
+    char* lv = term();
+    _not();
     return lv;
 }
 
@@ -201,6 +222,7 @@ static char* term()
     return
     io.peek()== '~'    ? inv  () :
     io.peek()== '+'    ? pos  () :
+    io.peek()== '!'    ? not  () :
     io.peek()== '-'    ? neg  () :
     io.peek()== '('    ? fexp () :
     isalpha(io.peek()) ? lname() :
