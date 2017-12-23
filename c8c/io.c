@@ -32,7 +32,8 @@ static void bomb(const char* msg, ...)
 {
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "\x1B[31merror: line %d: ", nline);
+    fprintf(stderr, "\x1B[31m");
+    fprintf(stderr, "error: line %d: ", nline);
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\x1B[0m\n");
     va_end(args);
@@ -55,7 +56,7 @@ static void buff()
     {
         nline++;
         reads = 0;
-        print("%s", lbuff);
+        print("\x1B[32m;%s\x1B[0m", lbuff);
     }
 }
 

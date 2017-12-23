@@ -75,14 +75,45 @@ static void _neg()
 static void _inv() { io.print("\tXOR V%1X,0xFF", rp); }
 
 // Chain operators.
-static void _add() { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
-static void _sub() { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
-static void _shl() { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
-static void _shr() { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
-static void _and() { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
-static void _or()  { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
-static void _xor() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
-
+static void _add()  { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
+static void _sub()  { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
+static void _shl()  { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
+static void _shr()  { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
+static void _and()  { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
+static void _or()   { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
+static void _xor()  { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
+static void _neql() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
+static void _eql()
+{
+    io.print("\tXOR V%1X,V%1X", rp - 1, rp);
+    io.print("\tXOR V%1X,0xFF", rp - 1);
+}
+static void _lt()
+{
+    io.print("\tSUBN V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD   V%1X,VF"  , rp - 1);
+}
+static void _gt()
+{
+    io.print("\tSUB V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD  V%1X,VF"  , rp - 1);
+}
+static void _lteql()
+{
+    io.print("\tLD  V%1X,V%1X", rp + 1, rp - 1);
+    _lt();
+    io.print("\tXOR V%1X,V%1X", rp + 1, rp);
+    io.print("\tXOR V%1X,0xFF", rp + 1);
+    io.print("\tOR  V%1X,V%1X", rp - 1, rp + 1);
+}
+static void _gteql()
+{
+    io.print("\tLD  V%1X,V%1X", rp + 1, rp - 1);
+    _gt();
+    io.print("\tXOR V%1X,V%1X", rp + 1, rp);
+    io.print("\tXOR V%1X,0xFF", rp + 1);
+    io.print("\tOR  V%1X,V%1X", rp - 1, rp + 1);
+}
 // L-value operators.
 static void _addeql(char* lv) { io.print("\tADD V%1X,V%1X", gdef(lv), rp); _add(); }
 static void _subeql(char* lv) { io.print("\tSUB V%1X,V%1X", gdef(lv), rp); _sub(); }
@@ -180,13 +211,19 @@ static char* term()
 // Do chain operator.
 static void dcop(char* op)
 {
-    str.eql(op, "+" ) ? _add() :
-    str.eql(op, "-" ) ? _sub() :
-    str.eql(op, "<<") ? _shl() :
-    str.eql(op, ">>") ? _shr() :
-    str.eql(op, "&" ) ? _and() :
-    str.eql(op, "|" ) ? _or () :
-    str.eql(op, "^" ) ? _xor() :
+    str.eql(op, "+" )  ? _add  () :
+    str.eql(op, "-" )  ? _sub  () :
+    str.eql(op, "<<")  ? _shl  () :
+    str.eql(op, ">>")  ? _shr  () :
+    str.eql(op, "&" )  ? _and  () :
+    str.eql(op, "|" )  ? _or   () :
+    str.eql(op, "^" )  ? _xor  () :
+    str.eql(op, "==" ) ? _eql  () :
+    str.eql(op, "!=" ) ? _neql () :
+    str.eql(op, "<" )  ? _lt   () :
+    str.eql(op, ">" )  ? _gt   () :
+    str.eql(op, "<=" ) ? _lteql() :
+    str.eql(op, ">=" ) ? _gteql() :
     io.bomb("unknown operator '%s'", op);
 }
 
@@ -240,9 +277,10 @@ static void expression()
 // Identifier.
 static void ident()
 {
-    io.match('l');
-    io.match('e');
+    io.match('b');
+    io.match('y');
     io.match('t');
+    io.match('e');
     io.match(' ');
     // For any whitespace.
     char* name = io.gname();

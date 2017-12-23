@@ -25,7 +25,13 @@ static int ispostfix(const char* s)
 
 static int isassign(const char* s)
 {
-    return strstr(s, "=") && !strstr(s, "==");
+    return strstr(s, "+=")
+        || strstr(s, "-=")
+        || strstr(s, "&=")
+        || strstr(s, "^=")
+        || strstr(s, "|=")
+        || strstr(s, "<<=")
+        || strstr(s, ">>=");
 }
 
 static int ischain(const char* s)
@@ -36,6 +42,8 @@ static int ischain(const char* s)
         || strstr(s, "^")
         || strstr(s, "|")
         || strstr(s, "<")
+        || strstr(s, "=")
+        || strstr(s, "!")
         || strstr(s, ">");
 }
 
