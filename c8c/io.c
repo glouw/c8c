@@ -97,7 +97,8 @@ static int isendexpr()
 {
     return now == ';'
         || now == ')'
-        || now == ',';
+        || now == ','
+        || now == EOF; // For really odd occasions. TODO: Remove when blocks {} are in place.
 }
 
 static int isendop()

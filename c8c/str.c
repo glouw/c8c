@@ -25,13 +25,13 @@ static int ispostfix(const char* s)
 
 static int isassign(const char* s)
 {
-    return strstr(s, "+=")
-        || strstr(s, "-=")
-        || strstr(s, "&=")
-        || strstr(s, "^=")
-        || strstr(s, "|=")
+    return strstr(s, "+=" )
+        || strstr(s, "-=" )
         || strstr(s, "<<=")
-        || strstr(s, ">>=");
+        || strstr(s, ">>=")
+        || strstr(s, "&=" )
+        || strstr(s, "|=" )
+        || strstr(s, "^=" );
 }
 
 static int ischain(const char* s)
@@ -39,19 +39,27 @@ static int ischain(const char* s)
     return strstr(s, "+")
         || strstr(s, "-")
         || strstr(s, "&")
+        || strstr(s, "&&")
         || strstr(s, "^")
         || strstr(s, "|")
+        || strstr(s, "||")
         || strstr(s, "<")
         || strstr(s, "=")
         || strstr(s, "!")
         || strstr(s, ">");
 }
 
-static int isname(const char* lv)
+static int isname(const char* s)
 {
-    return isalpha(lv[0]);
+    return isalpha(s[0]);
+}
+
+static int islogical(const char* s)
+{
+    return strstr(s, "&&" )
+        || strstr(s, "||" );
 }
 
 const struct str str = {
-    eql, dup, ispostfix, isassign, ischain, isname
+    eql, dup, ispostfix, isassign, ischain, isname, islogical
 };

@@ -9,9 +9,9 @@
 
 static int rp;
 
-static int label;
-
 static char* names[16];
+
+static int label;
 
 static char* term();
 
@@ -27,7 +27,6 @@ static void dump()
 {
     for(unsigned i = 0; i < len(names); i++)
         io.print("%1X: %s", i, names[i]);
-    io.print("--");
 }
 
 static void shutdown()
@@ -64,51 +63,6 @@ static int isndef(char* name)
     return 1;
 }
 
-// Chain operators.
-static void _add() { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
-static void _sub() { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
-static void _shl() { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
-static void _shr() { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
-static void _and() { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
-static void _or()  { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
-static void _xor() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
-static void _pad() {
-    io.print("\tJP L%1X", label);
-    io.print("\tLD V%1X,0x00", rp - 1);
-    io.print("\tJP L%1X", label + 1);
-    io.print("L%1X:", label);
-    io.print("\tLD V%1X,0x01", rp - 1);
-    io.print("L%1X:", label + 1);
-    label += 2;
-}
-static void _neql()
-{
-    io.print("\tSE V%1X,V%1X", rp - 1, rp);
-    _pad();
-}
-static void _eql()
-{
-    io.print("\tSNE V%1X,V%1X", rp - 1, rp);
-    _pad();
-}
-static void _lt()
-{
-    io.print("\tSUBN V%1X,V%1X", rp - 1, rp);
-    io.print("\tLD V%1X,VF", rp - 1);
-}
-static void _gt()
-{
-    io.print("\tSUB V%1X,V%1X", rp - 1, rp);
-    io.print("\tLD V%1X,VF", rp - 1);
-}
-static void _lteql()
-{
-    _gt();
-}
-static void _gteql()
-{
-    _lt();
-}
 // L-value unary operators.
 static void _dec(char* lv) { io.print("\tSUB V%1X,0x01", gdef(lv)); }
 static void _inc(char* lv) { io.print("\tADD V%1X,0x01", gdef(lv)); }
@@ -122,11 +76,69 @@ static void _neg()
 static void _inv() { io.print("\tXOR V%1X,0xFF", rp); }
 static void _not()
 {
-    rp++;
-    io.print("\tLD V%1X,0x00", rp);
-    _neql();
-    rp--;
+    io.print("\tSNE V%1X,0x00", rp);
+    io.print("\tLD  V%1X,0x01", rp);
 }
+
+// Chain operators.
+static void _add() { io.print("\tADD V%1X,V%1X", rp - 1, rp); }
+static void _sub() { io.print("\tSUB V%1X,V%1X", rp - 1, rp); }
+static void _shl() { io.print("\tSHL V%1X,V%1X", rp - 1, rp); }
+static void _shr() { io.print("\tSHR V%1X,V%1X", rp - 1, rp); }
+static void _and() { io.print("\tAND V%1X,V%1X", rp - 1, rp); }
+static void _or()  { io.print("\tOR  V%1X,V%1X", rp - 1, rp); }
+static void _xor() { io.print("\tXOR V%1X,V%1X", rp - 1, rp); }
+static void _neql()
+{
+    const int l = label++;
+    io.print("\tSE V%1X,V%1X", rp - 1, rp);
+    io.print("\tJP ELS%d", l);
+    io.print("\tLD V%1X,0x01", rp - 1);
+    io.print("\tJP END%d", l);
+    io.print("ELS%d:", l);
+    io.print("\tLD V%1X,0x00", rp - 1);
+    io.print("END%d:", l);
+}
+static void _eql()
+{
+    const int l = label++;
+    io.print("\tSE V%1X,V%1X", rp - 1, rp);
+    io.print("\tJP ELS%d", l);
+    io.print("\tLD V%1X,0x00", rp - 1);
+    io.print("\tJP END%d", l);
+    io.print("ELS%d:", l);
+    io.print("\tLD V%1X,0x01", rp - 1);
+    io.print("END%d:", l);
+}
+static void _lt()
+{
+    io.print("\tSUBN V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD   V%1X,VF", rp - 1);
+}
+static void _gt()
+{
+    io.print("\tSUB V%1X,V%1X", rp - 1, rp);
+    io.print("\tLD  V%1X,VF", rp - 1);
+}
+static void _lteql()
+{
+    _gt();
+    io.print("\tXOR V%1X,0x01", rp - 1);
+}
+static void _gteql()
+{
+    _lt();
+    io.print("\tXOR V%1X,0x01", rp - 1);
+}
+static void _andl()
+{
+    io.print("\tLD V%1X,V%1X", rp - 1, rp);
+}
+static void _orl()
+{
+    io.print("\tLD V%1X,V%1X", rp - 1, rp);
+}
+
 // L-value operators.
 static void _addeql(char* lv) { io.print("\tADD V%1X,V%1X", gdef(lv), rp); _add(); }
 static void _subeql(char* lv) { io.print("\tSUB V%1X,V%1X", gdef(lv), rp); _sub(); }
@@ -138,7 +150,19 @@ static void _xoreq (char* lv) { io.print("\tXOR V%1X,V%1X", gdef(lv), rp); _xor(
 static void _lname (char* lv) { io.print("\tLD  V%1X,V%1X", rp, gdef(lv));         }
 
 // R-value operators.
-static void _lnum  (char* rv) { io.print("\tLD V%1X,0x%X", rp, strtol(rv, NULL, 0)); }
+static void _lnum  (char* rv) { io.print("\tLD  V%1X,0x%X", rp, strtol(rv, NULL, 0)); }
+
+// Logical short-circuit operators.
+static void _scand(const int l)
+{
+    io.print("\tSNE V%1X,0x00", rp);
+    io.print("\tJP  END%d", l);
+}
+static void _scor(const int l)
+{
+    io.print("\tSE V%1X,0x00", rp);
+    io.print("\tJP END%d", l);
+}
 
 static char* inc()
 {
@@ -220,11 +244,11 @@ static char* term()
 {
     io.skip();
     return
-    io.peek()== '~'    ? inv  () :
-    io.peek()== '+'    ? pos  () :
-    io.peek()== '!'    ? not  () :
-    io.peek()== '-'    ? neg  () :
-    io.peek()== '('    ? fexp () :
+    io.peek() == '~'   ? inv  () :
+    io.peek() == '+'   ? pos  () :
+    io.peek() == '!'   ? not  () :
+    io.peek() == '-'   ? neg  () :
+    io.peek() == '('   ? fexp () :
     isalpha(io.peek()) ? lname() :
     isdigit(io.peek()) ? lnum () :
     io.peeks();
@@ -233,19 +257,21 @@ static char* term()
 // Do chain operator.
 static void dcop(char* op)
 {
-    str.eql(op, "+" )  ? _add  () :
-    str.eql(op, "-" )  ? _sub  () :
-    str.eql(op, "<<")  ? _shl  () :
-    str.eql(op, ">>")  ? _shr  () :
-    str.eql(op, "&" )  ? _and  () :
-    str.eql(op, "|" )  ? _or   () :
-    str.eql(op, "^" )  ? _xor  () :
-    str.eql(op, "==" ) ? _eql  () :
-    str.eql(op, "!=" ) ? _neql () :
-    str.eql(op, "<" )  ? _lt   () :
-    str.eql(op, ">" )  ? _gt   () :
-    str.eql(op, "<=" ) ? _lteql() :
-    str.eql(op, ">=" ) ? _gteql() :
+    str.eql(op, "+" ) ? _add  () :
+    str.eql(op, "-" ) ? _sub  () :
+    str.eql(op, "<<") ? _shl  () :
+    str.eql(op, ">>") ? _shr  () :
+    str.eql(op, "&" ) ? _and  () :
+    str.eql(op, "&&") ? _andl () :
+    str.eql(op, "|" ) ? _or   () :
+    str.eql(op, "||") ? _orl  () :
+    str.eql(op, "^" ) ? _xor  () :
+    str.eql(op, "==") ? _eql  () :
+    str.eql(op, "!=") ? _neql () :
+    str.eql(op, "<" ) ? _lt   () :
+    str.eql(op, ">" ) ? _gt   () :
+    str.eql(op, "<=") ? _lteql() :
+    str.eql(op, ">=") ? _gteql() :
     io.bomb("unknown operator '%s'", op);
 }
 
@@ -260,8 +286,6 @@ static void daop(char* op, char* lv)
     str.eql(op, "&=" ) ? _andeq (lv) :
     str.eql(op, "|=" ) ? _oreq  (lv) :
     str.eql(op, "^=" ) ? _xoreq (lv) :
-    str.eql(op, "++" ) ? _inc   (lv) :
-    str.eql(op, "--" ) ? _dec   (lv) :
     io.bomb("unknown lvalue operator '%s' on lvalue '%s'", op, lv);
 }
 
@@ -269,31 +293,64 @@ static void daop(char* op, char* lv)
 static char* dpop(char* lv, char* op)
 {
     lcheck(lv, op);
-    daop(op, lv);
+    str.eql(op, "++" ) ? _inc(lv) :
+    str.eql(op, "--" ) ? _dec(lv) :
+    io.bomb("unknown postfix operator '%s'", op);
     free(op);
     return io.gop();
 }
 
-// A op B op A ... and so on
+static void dlop(char* op, const int l)
+{
+    str.eql(op, "&&") ? _scand(l) :
+    str.eql(op, "||") ? _scor (l) :
+    io.bomb("unknown logical operator");
+}
+
+static void exendl(const int l)
+{
+    io.print("END%d:", l);
+    io.print("\tSE V%1X,0x00", rp);
+    io.print("\tLD V%1X,0x01", rp);
+}
+
+// L-value Operator R-value Operator L-value...
 static void expression()
 {
+    const int l = label++;
+    // L-Value.
     char* lv = term();
+    int logical = 0;
     while(!io.isendexpr())
     {
-        rp++;
+        // Operator.
         char* op = io.gop();
-        // Postfix.
+        if(str.islogical(op))
+        {
+            dlop(op, l);
+            logical = 1;
+        }
+        else
         if(str.ispostfix(op))
             op = dpop(lv, op);
-        // Assignment or chain operator.
+        // R-Value.
+        rp++;
         char* rv = term();
-        str.isassign(op) ? daop(op, lv) : str.ischain(op) ? dcop(op) : (void) 0;
+        if(str.isassign(op))
+            daop(op, lv);
+        else
+        if(str.ischain(op))
+            dcop(op);
+        rp--;
         free(op);
         free(lv);
+        // As the chain progresses,
+        // the L-value becomes the R-value.
         lv = rv;
-        rp--;
     }
     free(lv);
+    if(logical)
+        exendl(l);
 }
 
 // Identifier.
@@ -314,6 +371,7 @@ static void ident()
     names[rp++] = name;
 }
 
+// Whole program.
 static void program()
 {
     while(!io.end())

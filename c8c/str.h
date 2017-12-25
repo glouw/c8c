@@ -7,7 +7,8 @@ struct str
     int (*ispostfix)(const char* s);
     int (*isassign)(const char* s);
     int (*ischain)(const char* s);
-    int (*isname)(const char* lv);
+    int (*isname)(const char* s);
+    int (*islogical)(const char* s);
 };
 
 extern const struct str str;
