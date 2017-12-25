@@ -108,9 +108,21 @@ static int isendop()
 
 static void match(const char c)
 {
+    skip();
     if(now != c)
         bomb("expected '%c'", c);
     next();
+}
+
+static void matches(const char* s)
+{
+    skip();
+    for(char* i = (char*) s; *i; i++)
+    {
+        if(now != *i)
+            bomb("expected '%s'", s);
+        next();
+    }
 }
 
 static char* gname()
@@ -134,7 +146,7 @@ static char* gnum()
         bomb("expected value");
     char* num = (char*) malloc(128 * sizeof(char));
     int i = 0;
-    while(isdigit(now))
+    while(isdigit(now) || isxdigit(now) || tolower(now) == 'x')
     {
         num[i++] = now;
         next();
@@ -163,5 +175,5 @@ static int end()
 }
 
 const struct io io = {
-    print, bomb, next, skip, init, peek, peeks, isendexpr, isendop, match, gname, gnum, gop, end
+    print, bomb, next, skip, init, peek, peeks, isendexpr, isendop, match, gname, gnum, gop, end, matches
 };

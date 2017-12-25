@@ -16,6 +16,7 @@ struct io
     char* (*gnum)(void);
     char* (*gop)(void);
     int   (*end)(void);
+    void  (*matches)(const char* s);
 };
 
 extern const struct io io;

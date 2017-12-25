@@ -9,7 +9,11 @@
 
 static int rp;
 
+static int tp;
+
 static char* names[16];
+
+static char* tops[512];
 
 static int label;
 
@@ -17,10 +21,14 @@ static char* term();
 
 static void expression();
 
-static void kill()
+static void reset()
 {
     for(int i = 0; i < rp; i++)
+    {
         free(names[i]);
+        names[i] = NULL;
+    }
+    rp = 0;
 }
 
 static void dump()
@@ -29,9 +37,19 @@ static void dump()
         io.print("%1X: %s", i, names[i]);
 }
 
+static void kill()
+{
+    for(int i = 0; i < tp; i++)
+    {
+        free(tops[i]);
+        tops[i] = NULL;
+    }
+}
+
 static void shutdown()
 {
     dump();
+    reset();
     kill();
 }
 
@@ -73,7 +91,10 @@ static void _neg()
     io.print("\tXOR V%1X,0xFF", rp);
     io.print("\tADD V%1X,0x01", rp);
 }
-static void _inv() { io.print("\tXOR V%1X,0xFF", rp); }
+static void _inv()
+{
+    io.print("\tXOR V%1X,0xFF", rp);
+}
 static void _not()
 {
     io.print("\tSNE V%1X,0x00", rp);
@@ -147,7 +168,7 @@ static void _shreq (char* lv) { io.print("\tSHR V%1X,V%1X", gdef(lv), rp); _shr(
 static void _andeq (char* lv) { io.print("\tAND V%1X,V%1X", gdef(lv), rp); _and(); }
 static void _oreq  (char* lv) { io.print("\tOR  V%1X,V%1X", gdef(lv), rp); _or();  }
 static void _xoreq (char* lv) { io.print("\tXOR V%1X,V%1X", gdef(lv), rp); _xor(); }
-static void _lname (char* lv) { io.print("\tLD  V%1X,V%1X", rp, gdef(lv));         }
+static void _lname (char* lv) { io.print("\tLD  V%1X,V%1X", rp - 1, gdef(lv));     }
 
 // R-value operators.
 static void _lnum  (char* rv) { io.print("\tLD  V%1X,0x%X", rp, strtol(rv, NULL, 0)); }
@@ -353,22 +374,90 @@ static void expression()
         exendl(l);
 }
 
-// Identifier.
-static void ident()
+static void _array()
 {
-    io.match('b');
-    io.match('y');
-    io.match('t');
-    io.match('e');
-    io.match(' ');
+    io.print("%s:", tops[tp++] = io.gname());
+    io.match('=');
+    io.match('{');
+    while(io.peek() != '}')
+    {
+        char* num = io.gnum();
+        io.print("\tDB 0x%02X", strtol(num, NULL, 0));
+        free(num);
+        io.skip();
+        if(io.peek() == ',')
+        {
+            io.match(',');
+            io.skip();
+            if(io.peek() == '}')
+                break;
+        }
+    }
+    io.match('}');
+    io.match(';');
+}
+
+static void identifier()
+{
     // For any whitespace.
     char* name = io.gname();
     isndef(name);
-    io.skip();
     io.match('=');
     expression();
     io.match(';');
     names[rp++] = name;
+}
+
+static void pop(const int idents)
+{
+    for(int i = 0; i < idents; i++)
+    {
+        rp--;
+        free(names[i]);
+        names[i] = NULL;
+    }
+}
+
+static void block()
+{
+    int idents = 0;
+    io.match('{');
+    while(io.peek() != '}')
+    {
+        io.skip();
+        switch(io.peek())
+        {
+        case '{':
+            block();
+            break;
+        case 'b':
+            io.matches("byte");
+            identifier();
+            idents++;
+            break;
+        default:
+            expression();
+            break;
+        }
+        io.skip();
+    }
+    io.match('}');
+    pop(idents);
+}
+
+static void _fun()
+{
+    char* name = io.gname();
+    io.match('(');
+    io.match(')');
+    block();
+    tops[tp++] = name;
+}
+
+static void check()
+{
+    if(!isspace(io.peek()))
+        io.bomb("expected a space between type and name");
 }
 
 // Whole program.
@@ -376,7 +465,28 @@ static void program()
 {
     while(!io.end())
     {
-        ident();
+        io.skip();
+        switch(io.peek())
+        {
+        case 'v':
+            io.matches("void");
+            check();
+            _fun();
+            break;
+        case 'b':
+            io.matches("byte");
+            check();
+            _fun();
+            break;
+        case 's':
+            io.matches("sprite");
+            check();
+            _array();
+            break;
+        default:
+            io.bomb("unsupported type starting with '%c'", io.peek());
+            break;
+        }
         io.skip();
     }
 }

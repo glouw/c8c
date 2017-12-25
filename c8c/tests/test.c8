@@ -1,2 +1,16 @@
-byte a = 1 && 1;
-byte b = 0 || 1 << 1 || 1;
+sprite a = { 0x1, 0x2, 0x3, 0x4, 10 };
+
+sprite b = {
+    0x1,
+    0x2,
+    0x3,
+};
+
+byte fun() {
+    byte a = 0x0;
+    byte b = 0x1;
+    byte c = 0x2;
+    byte d = +a++ + -123;
+}
+
+void main() { byte c = 0; }
