@@ -1,24 +1,31 @@
 #include "io.h"
 
+#include "str.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
 
-#include "str.h"
-
+// The current input file character.
 static int now;
 
+// The line number.
 static int nline = 1;
 
+// Input file (c8).
 static FILE* in;
 
+// Output file (asm).
 static FILE* out;
 
+// Line buffer.
 static char* lbuff;
 
+// Number of characters reads from input file.
 static int reads;
 
+// Writes to the output file. A new line is included.
 static void print(const char* msg, ...)
 {
     va_list args;
@@ -28,6 +35,7 @@ static void print(const char* msg, ...)
     va_end(args);
 }
 
+// Writes to standard error. A newline is included. Output is in red.
 static void bomb(const char* msg, ...)
 {
     va_list args;
@@ -49,6 +57,7 @@ static void shutdown()
         fclose(out);
 }
 
+// Buffers a new character from the input file.
 static void buff()
 {
     lbuff[reads++] = now == '\n' ? '\0' : now;
@@ -60,12 +69,14 @@ static void buff()
     }
 }
 
+// Gets a new charcter from the input file.
 static void next()
 {
     now = fgetc(in);
     buff();
 }
 
+// Skips white face.
 static void skip()
 {
     while(isspace(now))
@@ -82,30 +93,35 @@ static void init()
     skip();
 }
 
+// Returns the current char of the input file.
 static char peek()
 {
     return now;
 }
 
+// Same as peek(), but in string form.
 static char* peeks()
 {
     char n[] = { (char) now, '\0'};
     return str.dup(n);
 }
 
+// Returns true if input file is now at the end of an expression.
 static int isendexpr()
 {
     return now == ';'
         || now == ')'
-        || now == ','
-        || now == EOF; // For really odd occasions. TODO: Remove when blocks {} are in place.
+        || now == ',';
 }
 
+// Returns true if end of operator.
 static int isendop()
 {
     return isalnum(now) || isspace(now) || isendexpr();
 }
 
+// Exits if the current character does not match what is expected.
+// Also advances the unput buffer by one.
 static void match(const char c)
 {
     skip();
@@ -114,6 +130,8 @@ static void match(const char c)
     next();
 }
 
+// Exits if the current string does not match what is expected.
+// Also advances the unput buffer by the length of the expected string.
 static void matches(const char* s)
 {
     skip();
@@ -125,6 +143,7 @@ static void matches(const char* s)
     }
 }
 
+// Gets a number as a name.
 static char* gname()
 {
     skip();
@@ -139,6 +158,7 @@ static char* gname()
     return name;
 }
 
+// Gets a number as a string.
 static char* gnum()
 {
     skip();
@@ -155,6 +175,7 @@ static char* gnum()
     return num;
 }
 
+// Gets an operation as a string.
 static char* gop()
 {
     skip();
@@ -169,11 +190,12 @@ static char* gop()
     return op;
 }
 
-static int end()
+// Returns true if end of file.
+static int eof()
 {
     return now == EOF;
 }
 
 const struct io io = {
-    print, bomb, next, skip, init, peek, peeks, isendexpr, isendop, match, gname, gnum, gop, end, matches
+    print, bomb, next, skip, init, peek, peeks, isendexpr, isendop, match, gname, gnum, gop, eof, matches
 };
