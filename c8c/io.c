@@ -163,9 +163,13 @@ static void matches(const char* s)
 static char* gname()
 {
     skip();
+    // First char must be alpha.
+    if(!isalpha(now))
+        bomb("expected name");
     char* name = (char*) malloc(128 * sizeof(char));
     int i = 0;
-    while(isalpha(now))
+    // But name can contain alpha an numeric chars.
+    while(isalnum(now))
     {
         name[i++] = now;
         next();

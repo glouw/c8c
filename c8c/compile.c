@@ -89,15 +89,19 @@ static void lcheck(const char* lv, const char* op)
 static void tcheck()
 {
     if(!isspace(io.peek()))
-        io.bomb("expected a space between type and name");
+        io.bomb("expected space between type and name");
 }
 
+// Ensures left and right shifts are done by constant 1.
+// Thus is unfortunately a limitation of the chip8.
 static void scheck(const char* op, const char* rv)
 {
     if((str.eql(op, "<<") || str.eql(op, ">>")) && !str.eql(rv, "1"))
         io.bomb("Values may only be shifted left or right by constant 1");
 }
 
+// Ensures left and right assignment shifts are done by constant 1.
+// Thus is also unfortunately a limitation of the chip8.
 static void sacheck(const char* op, const char* rv)
 {
     if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
@@ -117,12 +121,14 @@ static int gdef(char* name)
 // Returns true if a name is already defined, else exits
 static int isndef(char* name)
 {
+    // Checks vars.
     for(unsigned i = 0; i < len(vars); i++)
         if(str.eql(name, vars[i]))
             io.bomb("name '%s' already defined", name);
+    // Checks labels.
     for(unsigned i = 0; i < len(labels); i++)
         if(str.eql(name, labels[i]))
-            io.bomb("name '%s' already defined", name);
+            io.bomb("label '%s' already defined", name);
     return 1;
 }
 
@@ -664,12 +670,33 @@ static void block()
 // Declaring a function.
 static void fun()
 {
-    char* name = io.gname();
-    isndef(name);
+    char* label = io.gname();
+    isndef(label);
+    labels[l++] = label;
     io.match('(');
+    io.skip();
+    while(io.peek() != ')')
+    {
+        io.matches("byte");
+        tcheck();
+        char* var = io.gname();
+        isndef(var);
+        io.skip();
+        if(io.peek() == ',')
+        {
+            io.match(',');
+            vars[v++] = var;
+        }
+        else
+        if(io.peek() == ')')
+            vars[v++] = var;
+        else
+            io.bomb("unknown symbol in argument list");
+        io.skip();
+    }
     io.match(')');
     block();
-    labels[l++] = name;
+    reset();
 }
 
 // Declaring a program.
