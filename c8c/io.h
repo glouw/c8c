@@ -11,7 +11,7 @@ struct io
     char* (*peeks)(void);
     int   (*isendexpr)(void);
     int   (*isendop)(void);
-    void  (*match)(const char c);
+    void  (*match)(const int c);
     char* (*gname)(void);
     char* (*gnum)(void);
     char* (*gop)(void);

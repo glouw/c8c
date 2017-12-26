@@ -25,6 +25,28 @@ void negs()
     byte c = a--;
 }
 
+void compare()
+{
+    byte a = 0;
+    {
+        byte b = a << 1;
+        byte d = a <<= 1;
+        byte e = 1 <= 1;
+        byte f = 1 > 1;
+        byte g = 1 == 1;
+    }
+}
+
+void commenting()
+{
+    // This is a comment
+    // byte a = 1;
+    byte a = 1;
+    // byte a = 1;
+    byte b = 1;
+    // ///////// byte a = 1;
+}
+
 void main()
 {
     byte d = 0;

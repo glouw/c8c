@@ -4,6 +4,7 @@
 #include "str.h"
 #include "util.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -31,8 +32,8 @@ static void pop(const int n)
     for(int i = 0; i < n; i++)
     {
         v--;
-        free(vars[i]);
-        vars[i] = NULL;
+        free(vars[v]);
+        vars[v] = NULL;
     }
 }
 
@@ -77,11 +78,30 @@ static void init()
     atexit(shutdown);
 }
 
-// Asserts an L-value.
+// Esnures L-value is a name.
 static void lcheck(const char* lv, const char* op)
 {
     if(!str.isname(lv))
         io.bomb("'%s' must be lvalue for operator '%s'", lv, op);
+}
+
+// Ensures a space is left after a name.
+static void tcheck()
+{
+    if(!isspace(io.peek()))
+        io.bomb("expected a space between type and name");
+}
+
+static void scheck(const char* op, const char* rv)
+{
+    if((str.eql(op, "<<") || str.eql(op, ">>")) && !str.eql(rv, "1"))
+        io.bomb("Values may only be shifted left or right by constant 1");
+}
+
+static void sacheck(const char* op, const char* rv)
+{
+    if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
+        io.bomb("Assignment shifts may only be done left or right by constant 1");
 }
 
 // Returns the register number of a defined variable.
@@ -105,6 +125,10 @@ static int isndef(char* name)
             io.bomb("name '%s' already defined", name);
     return 1;
 }
+
+/*
+ * Code generation functions are prefixed with a single underscore
+ */
 
 // Decerment.
 static void _dec(char* lv)
@@ -153,13 +177,13 @@ static void _sub()
 // Shift left.
 static void _shl()
 {
-    io.print("\tSHL V%1X,V%1X", v - 1, v);
+    io.print("\tSHL V%1X,V%1X", v - 1, v - 1);
 }
 
 // Shift right.
 static void _shr()
 {
-    io.print("\tSHR V%1X,V%1X", v - 1, v);
+    io.print("\tSHR V%1X,V%1X", v - 1, v - 1);
 }
 
 // Bitwise and.
@@ -186,10 +210,10 @@ static void _neql()
     const int b = branch++;
     io.print("\tSE V%1X,V%1X", v - 1, v);
     io.print("\tJP ELS%d", b);
-    io.print("\tLD V%1X,0x01", v - 1);
+    io.print("\tLD V%1X,0x00", v - 1);
     io.print("\tJP END%d", b);
     io.print("ELS%d:", b);
-    io.print("\tLD V%1X,0x00", v - 1);
+    io.print("\tLD V%1X,0x01", v - 1);
     io.print("END%d:", b);
 }
 
@@ -199,10 +223,10 @@ static void _eql()
     const int b = branch++;
     io.print("\tSE V%1X,V%1X", v - 1, v);
     io.print("\tJP ELS%d", b);
-    io.print("\tLD V%1X,0x00", v - 1);
+    io.print("\tLD V%1X,0x01", v - 1);
     io.print("\tJP END%d", b);
     io.print("ELS%d:", b);
-    io.print("\tLD V%1X,0x01", v - 1);
+    io.print("\tLD V%1X,0x00", v - 1);
     io.print("END%d:", b);
 }
 
@@ -271,14 +295,16 @@ static void _subeql(char* lv)
 // Shift left equal.
 static void _shleq(char* lv)
 {
-    io.print("\tSHL V%1X,V%1X", gdef(lv), v);
+    const int _v = gdef(lv);
+    io.print("\tSHL V%1X,V%1X", _v, _v);
     _shl();
 }
 
 // Shift right equal.
 static void _shreq(char* lv)
 {
-    io.print("\tSHR V%1X,V%1X", gdef(lv), v);
+    const int _v = gdef(lv);
+    io.print("\tSHR V%1X,V%1X", _v, _v);
     _shr();
 }
 
@@ -542,10 +568,16 @@ static void expression()
         v++;
         char* rv = term();
         if(str.isassign(op))
+        {
+            sacheck(op, rv);
             daop(op, lv);
+        }
         else
         if(str.ischain(op))
+        {
+            scheck(op, rv);
             dcop(op);
+        }
         v--;
         free(op);
         free(lv);
@@ -560,7 +592,7 @@ static void expression()
 }
 
 // Declaring a sprite.
-static void _sprite()
+static void sprite()
 {
     char* name = io.gname();
     isndef(name);
@@ -616,8 +648,11 @@ static void block()
             identifier();
             idents++;
             break;
+        case '}':
+            break;
         default:
             expression();
+            io.match(';');
             break;
         }
         io.skip();
@@ -627,7 +662,7 @@ static void block()
 }
 
 // Declaring a function.
-static void _fun()
+static void fun()
 {
     char* name = io.gname();
     isndef(name);
@@ -635,13 +670,6 @@ static void _fun()
     io.match(')');
     block();
     labels[l++] = name;
-}
-
-// Ensures a space is left after a name.
-static void check()
-{
-    if(!isspace(io.peek()))
-        io.bomb("expected a space between type and name");
 }
 
 // Declaring a program.
@@ -654,18 +682,18 @@ static void program()
         {
         case 'v':
             io.matches("void");
-            check();
-            _fun();
+            tcheck();
+            fun();
             break;
         case 'b':
             io.matches("byte");
-            check();
-            _fun();
+            tcheck();
+            fun();
             break;
         case 's':
             io.matches("sprite");
-            check();
-            _sprite();
+            tcheck();
+            sprite();
             break;
         default:
             io.bomb("unsupported type starting with '%c'", io.peek());

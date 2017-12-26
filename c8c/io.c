@@ -70,10 +70,26 @@ static void buff()
 }
 
 // Gets a new charcter from the input file.
-static void next()
+// Does not ignore comments.
+static void step()
 {
     now = fgetc(in);
     buff();
+}
+
+// Gets a new charcter from the input file.
+// Ignore comments.
+static void next()
+{
+    step();
+    if(now == '/')
+    {
+        step();
+        if(now != '/')
+            bomb("expected '/'");
+        while(now != '\n')
+            step();
+    }
 }
 
 // Skips white face.
@@ -122,7 +138,7 @@ static int isendop()
 
 // Exits if the current character does not match what is expected.
 // Also advances the unput buffer by one.
-static void match(const char c)
+static void match(const int c)
 {
     skip();
     if(now != c)

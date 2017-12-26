@@ -39,19 +39,24 @@ static int isassign(const char* s)
 
 static int ischain(const char* s)
 {
-    return eql(s, "+")
-        || eql(s, "-")
-        || eql(s, "?")
-        || eql(s, ":")
-        || eql(s, "&")
+    return eql(s, "+" )
+        || eql(s, "-" )
+        || eql(s, "?" )
+        || eql(s, ":" )
+        || eql(s, "&" )
         || eql(s, "&&")
-        || eql(s, "^")
-        || eql(s, "|")
+        || eql(s, "^" )
+        || eql(s, "|" )
         || eql(s, "||")
-        || eql(s, "<")
-        || eql(s, "=")
-        || eql(s, "!")
-        || eql(s, ">");
+        || eql(s, "<" )
+        || eql(s, "<=")
+        || eql(s, "=" )
+        || eql(s, "==")
+        || eql(s, "<<")
+        || eql(s, ">>")
+        || eql(s, "!" )
+        || eql(s, ">" )
+        || eql(s, ">=");
 }
 
 // Names start with alpha characters.
