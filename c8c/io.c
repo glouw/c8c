@@ -213,5 +213,6 @@ static int eof()
 }
 
 const struct io io = {
-    print, bomb, next, skip, init, peek, peeks, isendexpr, isendop, match, gname, gnum, gop, eof, matches
+    print, bomb, next, skip, init, peek, peeks, isendexpr,
+    isendop, match, gname, gnum, gop, eof, matches
 };

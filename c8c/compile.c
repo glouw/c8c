@@ -101,7 +101,7 @@ static void scheck(const char* op, const char* rv)
 static void sacheck(const char* op, const char* rv)
 {
     if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
-        io.bomb("Assignment shifts may only be done left or right by constant 1");
+        io.bomb("Assignment shifts must be left or right by constant 1");
 }
 
 // Returns the register number of a defined variable.

@@ -63,7 +63,7 @@ static int ischain(const char* s)
 static int isname(const char* s)
 {
     if(s == NULL)
-        io.bomb("Careful with that axe, Eugene. You derefereced a null pointer.");
+        io.bomb("derefereced a null pointer.");
     return isalpha(s[0]);
 }
 
