@@ -1,36 +1,44 @@
-#include <stdlib.h>
+#include <SDL2/SDL.h>
+#include <stdint.h>
 #include <time.h>
-#include <ncurses.h>
-
-#define len(array) (signed)(sizeof(array) / sizeof(*array))
 
 enum
 {
     VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80
 };
- 
-uint64_t vmem[VROWS];
+
+uint8_t vmem[VROWS][VCOLS];
 
 uint16_t pc = START, I, s[SSIZE], op;
 
 uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
 
+const uint8_t* key;
+
 uint8_t input(const int ms)
 {
-    timeout(ms);
-    switch(getch())
-    {
-        case '1': return 0x01; case '2': return 0x02; case '3': return 0x03; case '4': return 0x0C;
-        case 'q': return 0x04; case 'w': return 0x05; case 'e': return 0x06; case 'r': return 0x0D;
-        case 'a': return 0x07; case 's': return 0x08; case 'd': return 0x09; case 'f': return 0x0E;
-        case 'z': return 0x0A; case 'x': return 0x00; case 'c': return 0x0B; case 'v': return 0x0F;
-        default:
-            return 0xFF;
-    }
+    SDL_PumpEvents();
+    if(key[SDL_SCANCODE_1]) return 0x01;;
+    if(key[SDL_SCANCODE_2]) return 0x02;;
+    if(key[SDL_SCANCODE_3]) return 0x03;;
+    if(key[SDL_SCANCODE_4]) return 0x0C;;
+    if(key[SDL_SCANCODE_Q]) return 0x04;;
+    if(key[SDL_SCANCODE_W]) return 0x05;;
+    if(key[SDL_SCANCODE_E]) return 0x06;;
+    if(key[SDL_SCANCODE_R]) return 0x0D;;
+    if(key[SDL_SCANCODE_A]) return 0x07;;
+    if(key[SDL_SCANCODE_S]) return 0x08;;
+    if(key[SDL_SCANCODE_D]) return 0x09;;
+    if(key[SDL_SCANCODE_F]) return 0x0E;;
+    if(key[SDL_SCANCODE_Z]) return 0x0A;;
+    if(key[SDL_SCANCODE_X]) return 0x00;;
+    if(key[SDL_SCANCODE_C]) return 0x0B;;
+    if(key[SDL_SCANCODE_V]) return 0x0F;;
+    return 0xFF;
 }
 
 void _0000() { }
-void _00E0() { for(int i = 0; i < VROWS; i++) while(vmem[i] >>= 1); }
+void _00E0() { for(int i = 0; i < VROWS; i++) for(int j = 0; j < VCOLS; j++) vmem[i][j] = 0x00; }
 void _00EE() { pc = s[--sp]; }
 void _1NNN() { uint16_t nnn = op & 0x0FFF; pc = nnn; }
 void _2NNN() { uint16_t nnn = op & 0x0FFF; s[sp++] = pc; pc = nnn; }
@@ -56,13 +64,17 @@ void _DXYN() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n = (op 
     uint8_t flag = 0x00;
     for(int i = 0; i < n; i++)
     {
-        uint64_t line = (uint64_t) mem[I + i] << (VCOLS - 8);
-        line >>= v[x];
-        if(!flag)
-            flag = (vmem[v[y] + i] ^ line) != (vmem[v[y] + i] | line);
-        vmem[v[y] + i] ^= line;
+        for(int j = 0; j < 8; j++)
+        {
+            vmem[y + i][x + j] = 0xFF;
+        }
+        //uint64_t line = (uint64_t) mem[I + i] << (VCOLS - 8);
+        //line >>= v[x];
+        //if(!flag)
+        //    flag = (vmem[v[y] + i] ^ line) != (vmem[v[y] + i] | line);
+        //vmem[v[y] + i] ^= line;
     }
-    v[0xF] = flag;
+    //v[0xF] = flag;
 }
 void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
 void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
@@ -74,7 +86,7 @@ void _FX1E() { uint16_t x = (op & 0x0F00) >> 8; I += v[x]; }
 void _FX29() { uint16_t x = (op & 0x0F00) >> 8; I = 5 * v[x]; }
 void _FX33() { uint16_t x = (op & 0x0F00) >> 8;
     int lookup[] = { 100, 10, 1 };
-    for(int i = 0; i < len(lookup); i++)
+    for(unsigned i = 0; i < sizeof(lookup) / sizeof(*lookup); i++)
         mem[I + i] = v[x] / lookup[i] % 10;
 }
 void _FX55() { uint16_t x = (op & 0x0F00) >> 8; int i; for(i = 0; i <= x; i++) mem[I + i] = v[i]; I += i; }
@@ -100,35 +112,6 @@ void _0___() { (*opsa[op & 0x000F])(); }
 void _8___() { (*opsb[op & 0x000F])(); }
 void _E___() { (*opsc[op & 0x000F])(); }
 void _F___() { (*opsd[op & 0x00FF])(); }
-
-void output()
-{
-    erase();
-    for(int i = 0; i < VROWS; i++)
-    {
-        for(int j = 0; j < VCOLS; j++)
-        {
-            const uint8_t pixel = (vmem[i] >> (VCOLS - 1 - j)) & 0x1;
-            pixel ? color_set(1, NULL) : color_set(2, NULL);
-            addch(' ');
-        }
-        color_set(3, NULL);
-        addch('\n');
-    }
-    refresh();
-}
-
-void cycle()
-{
-    if(dt > 0) dt--;
-    if(st > 0) st--;
-    if(st) beep();
-    op = (mem[pc] << 8) + (mem[pc + 1] & 0x00FF);
-    pc += 0x0002;
-    (*exec[op >> 12])();
-    output();
-    napms(10);
-}
 
 void load(const char* game)
 {
@@ -165,25 +148,52 @@ void load(const char* game)
         mem[i + START] = buf[i];
 }
 
-void cleanup()
+SDL_Window* window;
+SDL_Renderer* renderer;
+
+void output()
 {
-    endwin();
+    for(int i = 0; i < VROWS; i++)
+    for(int j = 0; j < VCOLS; j++)
+    {
+        SDL_SetRenderDrawColor(renderer, 0x00, vmem[i][j], 0x00, 0x00);
+        const int w = 8;
+        const SDL_Rect rect = { j * w + 1, i * w + 1, w - 2, w - 2 };
+        SDL_RenderFillRect(renderer, &rect);
+    }
+    SDL_RenderPresent(renderer);
+}
+
+void cycle()
+{
+    if(dt > 0) dt--;
+    if(st > 0) st--;
+    if(st)
+    {
+        // Beep.
+    }
+    op = (mem[pc] << 8) + (mem[pc + 1] & 0x00FF);
+    pc += 0x0002;
+    (*exec[op >> 12])();
+    output();
 }
 
 int main(int argc, char* argv[])
 {
-    atexit(cleanup);
-    initscr();
-    noecho();
-    curs_set(0);
-    start_color();
-    init_pair(1, 0, 5); // Purple Square
-    init_pair(2, 0, 0); // Black square
-    init_pair(3, 7, 0); // White text
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_CreateWindowAndRenderer(512, 256, 0, &window, &renderer);
+    key = SDL_GetKeyboardState(NULL);
     if(argc != 2)
         exit(1);
     load(argv[1]);
     srand(time(0));
-    for(;;)
+    for(int cycles = 0; !key[SDL_SCANCODE_END]; cycles++)
+    {
+        SDL_PumpEvents();
         cycle();
+        SDL_Delay(1);
+    }
+    SDL_Quit();
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
 }

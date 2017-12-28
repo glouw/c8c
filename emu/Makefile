@@ -20,7 +20,7 @@ CFLAGS+= -Ofast -flto
 ARCH = -march=native
 
 # Linker flags
-LDFLAGS = -lncurses
+LDFLAGS = -lSDL2
 
 # Linker
 $(PROJ): $(SRCS:.c=.o)
