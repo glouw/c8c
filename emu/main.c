@@ -15,7 +15,7 @@ uint8_t dt, st, sp, v[VSIZE], mem[BYTES];
 
 const uint8_t* key;
 
-uint8_t input(const int waiting)
+int input(const int waiting)
 {
     // Needs "wait for keypress" event.
     SDL_PumpEvents();
@@ -39,7 +39,7 @@ uint8_t input(const int waiting)
         if(key[SDL_SCANCODE_V]) return 0x0F;
     }
     while(waiting);
-    return 0xFF;
+    return -1;
 }
 
 SDL_Window* window;
@@ -96,10 +96,10 @@ void _DXYN() {
     v[0xF] = flag;
     output();
 }
-void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input(0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
-void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input(0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
+void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; if(v[x] != input(0)) pc += 0x0002; }
+void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; if(v[x] == input(0)) pc += 0x0002; }
 void _FX07() { uint16_t x = (op & 0x0F00) >> 8; v[x] = dt; }
-void _FX0A() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input(1); if(pressed == 0xFF) v[x] = 0x00; else v[x] = pressed; }
+void _FX0A() { uint16_t x = (op & 0x0F00) >> 8; v[x] = input(1); }
 void _FX15() { uint16_t x = (op & 0x0F00) >> 8; dt = v[x]; }
 void _FX18() { uint16_t x = (op & 0x0F00) >> 8; st = v[x]; }
 void _FX1E() { uint16_t x = (op & 0x0F00) >> 8; I += v[x]; }
