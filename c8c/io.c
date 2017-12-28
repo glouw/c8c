@@ -163,13 +163,14 @@ static void matches(const char* s)
 static char* gname()
 {
     skip();
-    // First char must be alpha.
-    if(!isalpha(now))
-        bomb("expected name");
+    // First char must be alpha or underscore
+    putchar(now);
+    if(!(now == '_' || isalpha(now)))
+        bomb("names must start with underscores or alpha chars");
     char* name = (char*) malloc(128 * sizeof(char));
     int i = 0;
     // But name can contain alpha an numeric chars.
-    while(isalnum(now))
+    while(isalnum(now) || now == '_')
     {
         name[i++] = now;
         next();

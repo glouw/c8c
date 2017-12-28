@@ -59,12 +59,12 @@ static int ischain(const char* s)
         || eql(s, ">=");
 }
 
-// Names start with alpha characters.
+// Names start with alpha characters or underscores.
 static int isname(const char* s)
 {
     if(s == NULL)
         io.bomb("derefereced a null pointer.");
-    return isalpha(s[0]);
+    return isalpha(s[0]) || s[0] == '_';
 }
 
 static int islogical(const char* s)

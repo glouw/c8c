@@ -1,4 +1,6 @@
-sprite one = { 0x1, 0x2, 0x3, 0x4, 10 };
+sprite one = {
+    0x1, 0x2, 0x3, 0x4, 10
+};
 
 sprite two = {
     0x1,
@@ -6,33 +8,12 @@ sprite two = {
     0x3,
 };
 
-void compare(byte a)
+byte a()
 {
-    byte b = 0;
-    byte c = 0;
-    byte d = 0;
-    byte e = 0;
-    byte f = 0;
-    byte g = 0;
-    byte h = 0;
+    return 1;
 }
 
-void test(byte a)
+void main()
 {
-    byte b = 0;
-    byte c = 0;
-    byte d = 0;
-    byte e = 0;
-    byte f = 0;
-    byte g = 0;
-    byte h = 0;
-}
-
-void main(byte a, byte b, byte c)
-{
-    byte d = 0;
-    byte e = 0;
-    byte f = 0;
-    byte g = 0;
-    byte h = 0;
+    byte aa = a();
 }

@@ -16,7 +16,22 @@ static char* vars[16];
 // Sprite names and function names.
 static int l;
 
-static char* labels[512];
+enum type
+{
+    VOID,
+    BYTE,
+};
+
+static struct label
+{
+    char* name;
+    int args;
+    enum type type;
+}
+labels[512];
+
+// When identifying this flag is set high to aid error checking.
+int identing;
 
 // Counter for branches.
 static int branch;
@@ -60,8 +75,8 @@ static void kill()
 {
     for(int i = 0; i < l; i++)
     {
-        free(labels[i]);
-        labels[i] = NULL;
+        free(labels[i].name);
+        labels[i].name = NULL;
     }
     l = 0;
 }
@@ -78,34 +93,26 @@ static void init()
     atexit(shutdown);
 }
 
-// Esnures L-value is a name.
+static int find(const char* name)
+{
+    for(int i = 0; i < l; i++)
+        if(str.eql(name, labels[i].name))
+            return i;
+    return -1;
+}
+
+// Ensures L-value is a name.
 static void lcheck(const char* lv, const char* op)
 {
     if(!str.isname(lv))
         io.bomb("'%s' must be lvalue for operator '%s'", lv, op);
 }
 
-// Ensures a space is left after a name.
+// Ensures a space exists between token and name.
 static void tcheck()
 {
     if(!isspace(io.peek()))
-        io.bomb("expected space between type and name");
-}
-
-// Ensures left and right shifts are done by constant 1.
-// Thus is unfortunately a limitation of the chip8.
-static void scheck(const char* op, const char* rv)
-{
-    if((str.eql(op, "<<") || str.eql(op, ">>")) && !str.eql(rv, "1"))
-        io.bomb("Values may only be shifted left or right by constant 1");
-}
-
-// Ensures left and right assignment shifts are done by constant 1.
-// Thus is also unfortunately a limitation of the chip8.
-static void sacheck(const char* op, const char* rv)
-{
-    if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
-        io.bomb("Assignment shifts must be left or right by constant 1");
+        io.bomb("expected space between token and name");
 }
 
 // Returns the register number of a defined variable.
@@ -122,12 +129,12 @@ static int gdef(char* name)
 static int isndef(char* name)
 {
     // Checks vars.
-    for(unsigned i = 0; i < len(vars); i++)
+    for(int i = 0; i < v; i++)
         if(str.eql(name, vars[i]))
             io.bomb("name '%s' already defined", name);
     // Checks labels.
-    for(unsigned i = 0; i < len(labels); i++)
-        if(str.eql(name, labels[i]))
+    for(int i = 0; i < l; i++)
+        if(str.eql(name, labels[i].name))
             io.bomb("label '%s' already defined", name);
     return 1;
 }
@@ -361,6 +368,24 @@ static void _scorl(const int b)
     io.print("\tJP END%d", b);
 }
 
+// Pushes the stack to the stack frame.
+static void _fpush()
+{
+    io.print("\tLD F,VE");
+    io.print("\tLD [I],VE");
+    io.print("\tADD VE,0x03");
+}
+
+// Pops a stack from the stack frame.
+static void _fpop()
+{
+    io.print("\tSUB VE,0x03");
+    io.print("\tLD F,VE");
+    io.print("\tLD VE,[I]");
+    io.print("\tLD VF,V%d", v);
+    io.print("\tRET");
+}
+
 // Prefix increment an L-value. The L-value is checked.
 static char* inc()
 {
@@ -438,11 +463,63 @@ static char* lnum()
     return rv;
 }
 
+// Saves a copy of the current stack frame.
+// Moves local variables from current frame to next.
+static void move(const int args)
+{
+    _fpush();
+    for(int i = 0; i < args; i++)
+        io.print("\tLD V%1X,V%1X", i, v + i);
+}
+
+// Returns last register.
+static void ret()
+{
+    expression();
+    io.match(';');
+    _fpop();
+}
+
+static void call(const char* name)
+{
+    const int i = find(name);
+    if(i == -1)
+        io.bomb("function '%s' not declared", name);
+    io.match('(');
+    // Compute any argument expressions on local stack.
+    int args = 0;
+    while(io.peek() != ')')
+    {
+        expression();
+        v++;
+        args++;
+        io.skip();
+        if(io.peek() == ',')
+            io.match(',');
+        else
+        if(io.peek() == ')')
+            break;
+        else io.bomb("unknown symbol in argument list");
+    }
+    io.match(')');
+    if(labels[i].args != args)
+        io.bomb("argument mismatch when calling '%s'", name);
+    if(labels[i].type == VOID && identing)
+        io.bomb("term '%s' is of void return type", name);
+    v -= args;
+    move(args);
+    // Call.
+    io.print("\tCALL %s", name);
+    // Get return value once returned.
+    io.print("\tLD V%d,VF", v);
+}
+
 // Name loading.
 static char* lname()
 {
     char* lv = io.gname();
-    _lname(lv);
+    io.skip();
+    io.peek() == '(' ? call(lv) : _lname(lv);
     return lv;
 }
 
@@ -575,13 +652,15 @@ static void expression()
         char* rv = term();
         if(str.isassign(op))
         {
-            sacheck(op, rv);
+            if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
+                io.bomb("assignment shifts must be left or right by constant 1");
             daop(op, lv);
         }
         else
         if(str.ischain(op))
         {
-            scheck(op, rv);
+            if((str.eql(op, "<<") || str.eql(op, ">>")) && !str.eql(rv, "1"))
+                io.bomb("values may only be shifted left or right by constant 1");
             dcop(op);
         }
         v--;
@@ -602,7 +681,7 @@ static void sprite()
 {
     char* name = io.gname();
     isndef(name);
-    io.print("%s:", labels[l++] = name);
+    io.print("%s:", labels[l++].name = name);
     io.match('=');
     io.match('{');
     while(io.peek() != '}')
@@ -617,8 +696,7 @@ static void sprite()
         {
             io.match(',');
             io.skip();
-            if(io.peek() == '}')
-                break;
+            if(io.peek() == '}') break;
         }
     }
     io.match('}');
@@ -628,12 +706,14 @@ static void sprite()
 // Declaring an identifier.
 static void identifier()
 {
+    identing = 1;
     char* name = io.gname();
     isndef(name);
     io.match('=');
     expression();
     io.match(';');
     vars[v++] = name;
+    identing = 0;
 }
 
 // Declaring a block.
@@ -654,6 +734,11 @@ static void block()
             identifier();
             idents++;
             break;
+        case 'r':
+            io.matches("return");
+            tcheck();
+            ret();
+            break;
         case '}':
             break;
         default:
@@ -668,34 +753,47 @@ static void block()
 }
 
 // Declaring a function.
-static void fun()
+static void fun(const enum type type)
 {
-    char* label = io.gname();
-    isndef(label);
-    labels[l++] = label;
+    char* name = io.gname();
+    isndef(name);
     io.match('(');
     io.skip();
+    int args = 0;
     while(io.peek() != ')')
     {
         io.matches("byte");
         tcheck();
-        char* var = io.gname();
-        isndef(var);
+        char* arg = io.gname();
+        isndef(arg);
         io.skip();
+        // Arguments can be separated by a comma or a closing paren.
         if(io.peek() == ',')
         {
             io.match(',');
-            vars[v++] = var;
+            vars[v++] = arg;
+            args++;
         }
+        // If its a closing paren then there are no more args.
         else
         if(io.peek() == ')')
-            vars[v++] = var;
-        else
-            io.bomb("unknown symbol in argument list");
+        {
+            vars[v++] = arg;
+            args++;
+        }
+        else io.bomb("unknown symbol in argument list");
         io.skip();
     }
+    struct label label = {
+        name,
+        args,
+        type,
+    };
+    labels[l++] = label;
+    io.print("%s:", name);
     io.match(')');
     block();
+    _fpop();
     reset();
 }
 
@@ -710,12 +808,12 @@ static void program()
         case 'v':
             io.matches("void");
             tcheck();
-            fun();
+            fun(VOID);
             break;
         case 'b':
             io.matches("byte");
             tcheck();
-            fun();
+            fun(BYTE);
             break;
         case 's':
             io.matches("sprite");
