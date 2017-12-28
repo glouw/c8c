@@ -7,7 +7,7 @@ enum
     VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80
 };
 
-uint8_t vmem[VROWS][VCOLS];
+uint8_t vmem[VROWS];
 
 uint16_t pc = START, I, s[SSIZE], op;
 
@@ -38,7 +38,7 @@ uint8_t input(const int ms)
 }
 
 void _0000() { }
-void _00E0() { for(int i = 0; i < VROWS; i++) for(int j = 0; j < VCOLS; j++) vmem[i][j] = 0x00; }
+void _00E0() { for(int i = 0; i < VROWS; i++) while(vmem[i] >>= 1); }
 void _00EE() { pc = s[--sp]; }
 void _1NNN() { uint16_t nnn = op & 0x0FFF; pc = nnn; }
 void _2NNN() { uint16_t nnn = op & 0x0FFF; s[sp++] = pc; pc = nnn; }
@@ -64,17 +64,13 @@ void _DXYN() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4, n = (op 
     uint8_t flag = 0x00;
     for(int i = 0; i < n; i++)
     {
-        for(int j = 0; j < 8; j++)
-        {
-            vmem[y + i][x + j] = 0xFF;
-        }
-        //uint64_t line = (uint64_t) mem[I + i] << (VCOLS - 8);
-        //line >>= v[x];
-        //if(!flag)
-        //    flag = (vmem[v[y] + i] ^ line) != (vmem[v[y] + i] | line);
-        //vmem[v[y] + i] ^= line;
+        uint64_t line = (uint64_t) mem[I + i] << (VCOLS - 8);
+        line >>= v[x];
+        if(!flag)
+            flag = (vmem[v[y] + i] ^ line) != (vmem[v[y] + i] | line);
+        vmem[v[y] + i] ^= line;
     }
-    //v[0xF] = flag;
+    v[0xF] = flag;
 }
 void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0002; return; } if(v[x] != pressed) pc += 0x0002; }
 void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; uint8_t pressed = input( 0); if(pressed == 0xFF) { pc += 0x0000; return; } if(v[x] == pressed) pc += 0x0002; }
@@ -156,7 +152,7 @@ void output()
     for(int i = 0; i < VROWS; i++)
     for(int j = 0; j < VCOLS; j++)
     {
-        SDL_SetRenderDrawColor(renderer, 0x00, vmem[i][j], 0x00, 0x00);
+        SDL_SetRenderDrawColor(renderer, 0x00, vmem[i][j] ? 0xFF : 0x00, 0x00, 0x00);
         const int w = 8;
         const SDL_Rect rect = { j * w + 1, i * w + 1, w - 2, w - 2 };
         SDL_RenderFillRect(renderer, &rect);
