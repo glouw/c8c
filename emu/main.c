@@ -2,7 +2,10 @@
 #include <time.h>
 #include <ncurses.h>
 
-enum {
+#define len(array) (signed)(sizeof(array) / sizeof(*array))
+
+enum
+{
     VROWS = 32, VCOLS = 64, BYTES = 4096, START = 0x0200, VSIZE = 16, SSIZE = 12, BFONT = 80
 };
  
@@ -70,7 +73,6 @@ void _FX18() { uint16_t x = (op & 0x0F00) >> 8; st = v[x]; }
 void _FX1E() { uint16_t x = (op & 0x0F00) >> 8; I += v[x]; }
 void _FX29() { uint16_t x = (op & 0x0F00) >> 8; I = 5 * v[x]; }
 void _FX33() { uint16_t x = (op & 0x0F00) >> 8;
-    #define len(array) (signed)(sizeof(array) / sizeof(*array))
     int lookup[] = { 100, 10, 1 };
     for(int i = 0; i < len(lookup); i++)
         mem[I + i] = v[x] / lookup[i] % 10;

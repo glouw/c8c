@@ -16,11 +16,7 @@ static char* vars[16];
 // Sprite names and function names.
 static int l;
 
-enum type
-{
-    VOID,
-    BYTE,
-};
+enum type { VOID, BYTE, SPRITE, TYPES };
 
 static struct label
 {
@@ -28,7 +24,7 @@ static struct label
     int args;
     enum type type;
 }
-labels[512];
+labels[128];
 
 // When identifying this flag is set high to aid error checking.
 int identing;
@@ -90,6 +86,14 @@ static void shutdown()
 
 static void init()
 {
+    struct label baked[] = {
+        // byte draw(byte x, byte y, sprite s);
+        { str.dup("draw"), 3, BYTE },
+        // void cls();
+        { str.dup("cls" ), 0, VOID },
+    };
+    for(unsigned i = 0; i < len(baked); i++)
+        labels[l++] = baked[i];
     atexit(shutdown);
 }
 
@@ -116,12 +120,12 @@ static void tcheck()
 }
 
 // Returns the register number of a defined variable.
-static int gdef(char* name)
+static int gvar(char* name)
 {
     for(int i = 0; i < v; i++)
         if(str.eql(name, vars[i]))
             return i;
-    io.bomb("name '%s' not defined\n", name);
+    io.bomb("variable name '%s' not defined\n", name);
     return 0;
 }
 
@@ -139,6 +143,11 @@ static int isndef(char* name)
     return 1;
 }
 
+static int tobyte(const char* value)
+{
+    return strtol(value, NULL, 0) % 256;
+}
+
 /*
  * Code generation functions are prefixed with a single underscore
  */
@@ -146,13 +155,13 @@ static int isndef(char* name)
 // Decerment.
 static void _dec(char* lv)
 {
-    io.print("\tSUB V%1X,0x01", gdef(lv));
+    io.print("\tSUB V%1X,0x01", gvar(lv));
 }
 
 // Increment.
 static void _inc(char* lv)
 {
-    io.print("\tADD V%1X,0x01", gdef(lv));
+    io.print("\tADD V%1X,0x01", gvar(lv));
 }
 
 // Negation.
@@ -294,21 +303,21 @@ static void _c(const int b)
 // Add equal.
 static void _addeql(char* lv)
 {
-    io.print("\tADD V%1X,V%1X", gdef(lv), v);
+    io.print("\tADD V%1X,V%1X", gvar(lv), v);
     _add();
 }
 
 // Minus equal.
 static void _subeql(char* lv)
 {
-    io.print("\tSUB V%1X,V%1X", gdef(lv), v);
+    io.print("\tSUB V%1X,V%1X", gvar(lv), v);
     _sub();
 }
 
 // Shift left equal.
 static void _shleq(char* lv)
 {
-    const int _v = gdef(lv);
+    const int _v = gvar(lv);
     io.print("\tSHL V%1X,V%1X", _v, _v);
     _shl();
 }
@@ -316,7 +325,7 @@ static void _shleq(char* lv)
 // Shift right equal.
 static void _shreq(char* lv)
 {
-    const int _v = gdef(lv);
+    const int _v = gvar(lv);
     io.print("\tSHR V%1X,V%1X", _v, _v);
     _shr();
 }
@@ -324,34 +333,34 @@ static void _shreq(char* lv)
 // And equal.
 static void _andeq(char* lv)
 {
-    io.print("\tAND V%1X,V%1X", gdef(lv), v);
+    io.print("\tAND V%1X,V%1X", gvar(lv), v);
     _and();
 }
 
 // Or equal.
 static void _oreq(char* lv)
 {
-    io.print("\tOR V%1X,V%1X", gdef(lv), v);
+    io.print("\tOR V%1X,V%1X", gvar(lv), v);
     _or();
 }
 
 // Xor equal
 static void _xoreq(char* lv)
 {
-    io.print("\tXOR V%1X,V%1X", gdef(lv), v);
+    io.print("\tXOR V%1X,V%1X", gvar(lv), v);
     _xor();
 }
 
-// Load name.
+// Load name. Works on variable names only.
 static void _lname(char* lv)
 {
-    io.print("\tLD V%1X,V%1X", v, gdef(lv));
+    io.print("\tLD V%1X,V%1X", v, gvar(lv));
 }
 
 // Load number.
 static void _lnum(char* rv)
 {
-    io.print("\tLD V%1X,0x%02X", v, strtol(rv, NULL, 0));
+    io.print("\tLD V%1X,0x%02X", v, tobyte(rv));
 }
 
 // Logical short-circuit and.
@@ -480,13 +489,37 @@ static void ret()
     _fpop();
 }
 
-static void call(const char* name)
+// The drawing function is inlined for performance.
+static void draw()
+{
+    const int args = 2;
+    for(int i = 0; i < args; i++)
+    {
+        expression();
+        v++;
+        io.match(',');
+    }
+    char* label = io.gname();
+    const int index = find(label);
+    if(index == -1)
+        io.bomb("label '%s' not defined", label);
+    io.print("\tLD I,%s", labels[index].name);
+    io.print("\tDRW V%1X,V%1X,0x%1X", v - 2, v - 1, labels[index].args);
+    free(label);
+    v -= args;
+}
+
+// The clear screen is inlined for performance.
+static void cls()
+{
+    io.print("\tCLS");
+}
+
+static void _call(const char* name)
 {
     const int i = find(name);
     if(i == -1)
-        io.bomb("function '%s' not declared", name);
-    io.match('(');
-    // Compute any argument expressions on local stack.
+        io.bomb("function '%s' not defined", name);
     int args = 0;
     while(io.peek() != ')')
     {
@@ -501,16 +534,29 @@ static void call(const char* name)
             break;
         else io.bomb("unknown symbol in argument list");
     }
-    io.match(')');
     if(labels[i].args != args)
         io.bomb("argument mismatch when calling '%s'", name);
     if(labels[i].type == VOID && identing)
         io.bomb("term '%s' is of void return type", name);
     v -= args;
     move(args);
-    // Call.
     io.print("\tCALL %s", name);
-    // Get return value once returned.
+}
+
+static void call(const char* name)
+{
+    io.match('(');
+    // Built in functions will inline.
+    if(str.eql(name, "draw"))
+        draw();
+    else
+    if(str.eql(name, "clear"))
+        cls();
+    // Runtime function call.
+    else
+        _call(name);
+    io.match(')');
+    // Load return value.
     io.print("\tLD V%d,VF", v);
 }
 
@@ -681,13 +727,14 @@ static void sprite()
 {
     char* name = io.gname();
     isndef(name);
-    io.print("%s:", labels[l++].name = name);
     io.match('=');
     io.match('{');
+    int size = 0;
     while(io.peek() != '}')
     {
         char* num = io.gnum();
-        io.print("\tDB 0x%02X", strtol(num, NULL, 0));
+        io.print("\tDB 0x%02X", tobyte(num));
+        size++;
         free(num);
         io.skip();
         // Bytes are separated by commas.
@@ -699,8 +746,13 @@ static void sprite()
             if(io.peek() == '}') break;
         }
     }
+    if(size > 0xF)
+        io.bomb("too many elements in sprite");
     io.match('}');
     io.match(';');
+    struct label sprite = { name, size, SPRITE };
+    labels[l++] = sprite;
+    io.print("%s:", sprite.name);
 }
 
 // Declaring an identifier.
@@ -797,6 +849,14 @@ static void fun(const enum type type)
     reset();
 }
 
+static void vreset()
+{
+    io.print("START:");
+    io.print("\tCALL main");
+    io.print("LOOP:");
+    io.print("\tJP LOOP");
+}
+
 // Declaring a program.
 static void program()
 {
@@ -826,6 +886,7 @@ static void program()
         }
         io.skip();
     }
+    vreset();
 }
 
 const struct compile compile = {

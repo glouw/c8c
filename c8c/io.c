@@ -164,7 +164,6 @@ static char* gname()
 {
     skip();
     // First char must be alpha or underscore
-    putchar(now);
     if(!(now == '_' || isalpha(now)))
         bomb("names must start with underscores or alpha chars");
     char* name = (char*) malloc(128 * sizeof(char));

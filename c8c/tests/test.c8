@@ -1,19 +1,29 @@
-sprite one = {
-    0x1, 0x2, 0x3, 0x4, 10
+sprite sprite = {
+    0x00,
+    0x11,
+    0x22,
+    0x33,
+    0x44,
+    0x55,
+    0x66,
+    0x77,
+    0x88,
+    0x99,
+    0xAA,
+    0xBB,
+    0xCC,
+    0xDD,
+    0xEE,
 };
 
-sprite two = {
-    0x1,
-    0x2,
-    0x3,
-};
-
-byte a()
+byte add(byte a, byte b)
 {
-    return 1;
+    return a + b;
 }
 
-void main()
+byte main()
 {
-    byte aa = a();
+    clear();
+    byte c = draw(0, 0, sprite);
+    return 0;
 }
