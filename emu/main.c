@@ -55,40 +55,6 @@ static int input(const int waiting)
     return -1;
 }
 
-static int charging(const int j, const int i)
-{
-    return (vmem[j] >> (VCOLS - 1 - i)) & 0x1;
-}
-
-static void charge()
-{
-    for(int j = 0; j < VROWS; j++)
-    for(int i = 0; i < VCOLS; i++)
-        if(charging(j, i))
-            charges[j][i] = 0xFF;
-}
-
-static void discharge()
-{
-    for(int j = 0; j < VROWS; j++)
-    for(int i = 0; i < VCOLS; i++)
-        if(!charging(j, i))
-            charges[j][i] *= 0.997;
-}
-
-static void output()
-{
-    for(int j = 0; j < VROWS; j++)
-    for(int i = 0; i < VCOLS; i++)
-    {
-        SDL_SetRenderDrawColor(renderer, charges[j][i], 0x00, 0x00, 0x00);
-        const int w = 8;
-        const SDL_Rect rect = { i * w + 1, j * w + 1, w - 2, w - 2 };
-        SDL_RenderFillRect(renderer, &rect);
-    }
-    SDL_RenderPresent(renderer);
-}
-
 static void _0000() { /* no-op */ }
 static void _00E0() { for(int j = 0; j < VROWS; j++) while(vmem[j] >>= 1); }
 static void _00EE() { pc = s[--sp]; }
@@ -103,11 +69,11 @@ static void _8XY0() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v
 static void _8XY1() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] |= v[y]; }
 static void _8XY2() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] &= v[y]; }
 static void _8XY3() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[x] ^= v[y]; }
-static void _8XY4() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] + v[y] > 0xFF ? 0x01 : 0x00; v[x] = v[x] + v[y]; }
-static void _8XY5() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[x] - v[y] < 0x00 ? 0x00 : 0x01; v[x] = v[x] - v[y]; }
-static void _8XY7() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = v[y] - v[x] < 0x00 ? 0x00 : 0x01; v[x] = v[y] - v[x]; }
-static void _8XY6() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 0) & 0x01; v[x] = v[y] >> 1; }
-static void _8XYE() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; v[0xF] = (v[y] >> 7) & 0x01; v[x] = v[y] << 1; }
+static void _8XY4() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; uint8_t flag = v[x] + v[y] > 0xFF ? 0x01 : 0x00; v[x] = v[x] + v[y]; v[0xF] = flag; }
+static void _8XY5() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; uint8_t flag = v[x] - v[y] < 0x00 ? 0x00 : 0x01; v[x] = v[x] - v[y]; v[0xF] = flag; }
+static void _8XY7() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; uint8_t flag = v[y] - v[x] < 0x00 ? 0x00 : 0x01; v[x] = v[y] - v[x]; v[0xF] = flag; }
+static void _8XY6() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; uint8_t flag = (v[y] >> 0) & 0x01; v[x] = v[y] >> 1; v[0xF] = flag; }
+static void _8XYE() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; uint8_t flag = (v[y] >> 7) & 0x01; v[x] = v[y] << 1; v[0xF] = flag; }
 static void _9XY0() { uint16_t x = (op & 0x0F00) >> 8, y = (op & 0x00F0) >> 4; if(v[x] != v[y]) pc += 0x0002; }
 static void _ANNN() { uint16_t nnn = op & 0x0FFF; I = nnn; }
 static void _BNNN() { uint16_t nnn = op & 0x0FFF; pc = nnn + v[0x0]; }
@@ -116,15 +82,16 @@ static void _DXYN() {
     uint16_t x = (op & 0x0F00) >> 8;
     uint16_t y = (op & 0x00F0) >> 4;
     uint16_t n = (op & 0x000F) >> 0;
+    uint8_t flag = 0;
     for(int j = 0; j < n; j++)
     {
         uint64_t line = (uint64_t) mem[I + j] << (VCOLS - 8);
         line >>= v[x];
-        v[0xF] |= (vmem[v[y] + j] ^ line) != (vmem[v[y] + j] | line);
+        if((vmem[v[y] + j] ^ line) != (vmem[v[y] + j] | line))
+            flag = 1;
         vmem[v[y] + j] ^= line;
     }
-    charge();
-    output();
+    v[0xF] = flag;
 }
 static void _EXA1() { uint16_t x = (op & 0x0F00) >> 8; if(v[x] != input(0)) pc += 0x0002; }
 static void _EX9E() { uint16_t x = (op & 0x0F00) >> 8; if(v[x] == input(0)) pc += 0x0002; }
@@ -150,13 +117,13 @@ static void (*opsa[])() = { _00E0, _0000, _0000, _0000, _0000, _0000, _0000, _00
 static void (*opsb[])() = { _8XY0, _8XY1, _8XY2, _8XY3, _8XY4, _8XY5, _8XY6, _8XY7, _0000, _0000, _0000, _0000, _0000, _0000, _8XYE, _0000 };
 static void (*opsc[])() = { _0000, _EXA1, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _EX9E, _0000 };
 static void (*opsd[])() = { _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX07, _0000, _0000, _FX0A, _0000, _0000, _0000, _0000, _0000,
-/*************************/ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
-/*                       */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
-/*                       */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/*         CHIP-8        */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/*                       */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/*                       */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
-/*************************/ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
+    /*************************/ _0000, _0000, _0000, _0000, _0000, _FX15, _0000, _0000, _FX18, _0000, _0000, _0000, _0000, _0000, _FX1E, _0000,
+    /*                       */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _FX29, _0000, _0000, _0000, _0000, _0000, _0000,
+    /*                       */ _0000, _0000, _0000, _FX33, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+    /*         CHIP-8        */ _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+    /*                       */ _0000, _0000, _0000, _0000, _0000, _FX55, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+    /*                       */ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000,
+    /*************************/ _0000, _0000, _0000, _0000, _0000, _FX65, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000, _0000 };
 static void (*exec[])() = { _0___, _1NNN, _2NNN, _3XNN, _4XNN, _5XY0, _6XNN, _7XNN, _8___, _9XY0, _ANNN, _BNNN, _CXNN, _DXYN, _E___, _F___ };
 static void _0___() { (*opsa[op & 0x000F])(); }
 static void _8___() { (*opsb[op & 0x000F])(); }
@@ -185,7 +152,10 @@ static void load(const char* game)
     };
     FILE* const fp = fopen(game, "rb");
     if(fp == NULL)
+    {
+        fprintf(stderr, "error: binary '%s' not found\n", game);
         exit(1);
+    }
     fseek(fp, 0, SEEK_END);
     const long size = ftell(fp);
     rewind(fp);
@@ -211,20 +181,64 @@ static void cycle()
     (*exec[op >> 12])();
 }
 
+static void output()
+{
+    for(int j = 0; j < VROWS; j++)
+    for(int i = 0; i < VCOLS; i++)
+    {
+        SDL_SetRenderDrawColor(renderer, charges[j][i], 0x00, 0x00, 0x00);
+        const int w = 8;
+        const SDL_Rect rect = { i * w + 1, j * w + 1, w - 2, w - 2 };
+        SDL_RenderFillRect(renderer, &rect);
+    }
+    SDL_RenderPresent(renderer);
+}
+
+static int charging(const int j, const int i)
+{
+    return (vmem[j] >> (VCOLS - 1 - i)) & 0x1;
+}
+
+static void charge()
+{
+    for(int j = 0; j < VROWS; j++)
+    for(int i = 0; i < VCOLS; i++)
+        if(charging(j, i))
+            charges[j][i] = 0xFF;
+}
+
+static void discharge()
+{
+    for(int j = 0; j < VROWS; j++)
+    for(int i = 0; i < VCOLS; i++)
+        if(!charging(j, i))
+            charges[j][i] *= 0.997;
+}
+
 int main(int argc, char* argv[])
 {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(512, 256, 0, &window, &renderer);
+    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
     key = SDL_GetKeyboardState(NULL);
     if(argc != 2)
+    {
+        fprintf(stderr, "error: too few or too many argmuents\n");
         exit(1);
+    }
     load(argv[1]);
     srand(time(0));
     for(int cycles = 0; !key[SDL_SCANCODE_END]; cycles++)
     {
         SDL_PumpEvents();
+        charge();
         cycle();
+        if(cycles % 10 == 0)
+            output();
         discharge();
+        SDL_Delay(1);
     }
     SDL_Quit();
     SDL_DestroyRenderer(renderer);

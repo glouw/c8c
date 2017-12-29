@@ -1,0 +1,29 @@
+sprite pad = {
+    0x80, 0x80, 0x80, 0x80, 0x80
+};
+
+sprite ball = { 0x80 };
+
+void main()
+{
+    draw(32, 8, pad);
+
+    // Ball.
+    byte x = 3;
+    byte y = 10;
+    draw(x, y, ball);
+
+    // Ball moves until it gets a collision.
+    byte collide = 0;
+    while(collide == 0) // (!) does not work.
+    {
+        draw(x, y, ball);
+        collide = draw(++x, y, ball);
+    }
+
+    // Done.
+    clear();
+    while(1)
+    {
+    }
+}

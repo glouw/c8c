@@ -81,6 +81,7 @@ static void scan(bool growing)
                 /* 2 */ "label not found",
                 /* 3 */ "unsupported chip8 mnemonic"
             };
+            flags.bits.generator = true;
             fprintf(stderr, "error: line %d: %s\n", linenumber, types[error]);
             exit(1);
         }

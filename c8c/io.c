@@ -14,10 +14,14 @@ static int now;
 static int nline = 1;
 
 // Input file (c8).
-static FILE* in;
+static FILE* fi;
+
+static char* source;
 
 // Output file (asm).
-static FILE* out;
+static FILE* fo;
+
+static char* assembly;
 
 // Line buffer.
 static char* lbuff;
@@ -25,13 +29,15 @@ static char* lbuff;
 // Number of characters reads from input file.
 static int reads;
 
+static int failure;
+
 // Writes to the output file. A new line is included.
 static void print(const char* msg, ...)
 {
     va_list args;
     va_start(args, msg);
-    vfprintf(out, msg, args);
-    fprintf(out, "\n");
+    vfprintf(fo, msg, args);
+    fprintf(fo, "\n");
     va_end(args);
 }
 
@@ -40,21 +46,21 @@ static void bomb(const char* msg, ...)
 {
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "\x1B[31m");
     fprintf(stderr, "error: line %d: ", nline);
     vfprintf(stderr, msg, args);
-    fprintf(stderr, "\x1B[0m\n");
+    fprintf(stderr, "\n");
     va_end(args);
+    failure = 1;
     exit(1);
 }
 
 static void shutdown()
 {
     free(lbuff);
-    if(in)
-        fclose(in);
-    if(out)
-        fclose(out);
+    if(fi) fclose(fi);
+    if(fo) fclose(fo);
+    if(failure)
+        remove(assembly);
 }
 
 // Buffers a new character from the input file.
@@ -65,7 +71,7 @@ static void buff()
     {
         nline++;
         reads = 0;
-        print("\x1B[32m;%s\x1B[0m", lbuff);
+        print(";%s", lbuff);
     }
 }
 
@@ -73,7 +79,7 @@ static void buff()
 // Does not ignore comments.
 static void step()
 {
-    now = fgetc(in);
+    now = fgetc(fi);
     buff();
 }
 
@@ -99,10 +105,24 @@ static void skip()
         next();
 }
 
-static void init()
+static void init(char* argv[])
 {
-    in = fopen("tests/test.c8", "r");
-    out = stdout;
+    source = argv[1];
+    assembly = argv[2];
+    // Input
+    fi = fopen(argv[1], "r");
+    if(fi == NULL)
+    {
+        fprintf(stderr, "error: %s does not exist\n", source);
+        exit(1);
+    }
+    // Output
+    fo = fopen(argv[2], "w");
+    if(fo == NULL)
+    {
+        fprintf(stderr, "error: %s cannot be made\n", assembly);
+        exit(1);
+    }
     atexit(shutdown);
     lbuff = (char*) malloc(512 * sizeof(char));
     next();
@@ -118,7 +138,7 @@ static char peek()
 // Same as peek(), but in string form.
 static char* peeks()
 {
-    char n[] = { (char) now, '\0'};
+    char n[] = { (char) now, '\0' };
     return str.dup(n);
 }
 

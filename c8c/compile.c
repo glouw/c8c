@@ -59,13 +59,6 @@ static void reset()
     v = 0;
 }
 
-// Prints all variable names.
-static void dump()
-{
-    for(unsigned i = 0; i < len(vars); i++)
-        io.print("%02X: %s", i, vars[i]);
-}
-
 // Removes all label names.
 static void kill()
 {
@@ -79,7 +72,6 @@ static void kill()
 
 static void shutdown()
 {
-    dump();
     reset();
     kill();
 }
@@ -155,7 +147,8 @@ static int tobyte(const char* value)
 // Decerment.
 static void _dec(char* lv)
 {
-    io.print("\tSUB V%1X,0x01", gvar(lv));
+    io.print("\tLD VF,0x01");
+    io.print("\tSUB V%1X,VF", gvar(lv));
 }
 
 // Increment.
@@ -226,8 +219,8 @@ static void _xor()
     io.print("\tXOR V%1X,V%1X", v - 1, v);
 }
 
-// Not equal.
-static void _neql()
+// Not equal to.
+static void _neqlto()
 {
     const int b = branch++;
     io.print("\tSE V%1X,V%1X", v - 1, v);
@@ -239,8 +232,8 @@ static void _neql()
     io.print("END%d:", b);
 }
 
-// Equal.
-static void _eql()
+// Equal to.
+static void _eqlto()
 {
     const int b = branch++;
     io.print("\tSE V%1X,V%1X", v - 1, v);
@@ -267,14 +260,14 @@ static void _gt()
 }
 
 // Less than or equal to.
-static void _lteql()
+static void _lteqlto()
 {
     _gt();
     io.print("\tXOR V%1X,0x01", v - 1);
 }
 
 // Greater than or equal to.
-static void _gteql()
+static void _gteqlto()
 {
     _lt();
     io.print("\tXOR V%1X,0x01", v - 1);
@@ -298,6 +291,12 @@ static void _c(const int b)
 {
     io.print("\tJP END%d", b);
     io.print("ELS%d", b);
+}
+
+// Equal.
+static void _eql(char* lv)
+{
+    io.print("\tLD V%1X,V%1X", gvar(lv), v);
 }
 
 // Add equal.
@@ -382,13 +381,15 @@ static void _fpush()
 {
     io.print("\tLD F,VE");
     io.print("\tLD [I],VE");
-    io.print("\tADD VE,0x03");
+    io.print("\tLD VF,0x03");
+    io.print("\tADD VE,VF");
 }
 
 // Pops a stack from the stack frame.
 static void _fpop()
 {
-    io.print("\tSUB VE,0x03");
+    io.print("\tLD VF,0x03");
+    io.print("\tSUB VE,VF");
     io.print("\tLD F,VE");
     io.print("\tLD VE,[I]");
     io.print("\tLD VF,V%d", v);
@@ -595,23 +596,23 @@ static char* term()
 // Chain operators populate the stack from V0 upwards.
 static void dcop(char* op)
 {
-    str.eql(op, "+" ) ? _add  () :
-    str.eql(op, "-" ) ? _sub  () :
-    str.eql(op, "<<") ? _shl  () :
-    str.eql(op, ">>") ? _shr  () :
-    str.eql(op, "&" ) ? _and  () :
-    str.eql(op, "&&") ? _cp   () :
-    str.eql(op, "|" ) ? _or   () :
-    str.eql(op, "?" ) ? _cp   () :
-    str.eql(op, ":" ) ? _cp   () :
-    str.eql(op, "||") ? _cp   () :
-    str.eql(op, "^" ) ? _xor  () :
-    str.eql(op, "==") ? _eql  () :
-    str.eql(op, "!=") ? _neql () :
-    str.eql(op, "<" ) ? _lt   () :
-    str.eql(op, ">" ) ? _gt   () :
-    str.eql(op, "<=") ? _lteql() :
-    str.eql(op, ">=") ? _gteql() :
+    str.eql(op, "+" ) ? _add     () :
+    str.eql(op, "-" ) ? _sub     () :
+    str.eql(op, "<<") ? _shl     () :
+    str.eql(op, ">>") ? _shr     () :
+    str.eql(op, "&" ) ? _and     () :
+    str.eql(op, "&&") ? _cp      () :
+    str.eql(op, "|" ) ? _or      () :
+    str.eql(op, "?" ) ? _cp      () :
+    str.eql(op, ":" ) ? _cp      () :
+    str.eql(op, "||") ? _cp      () :
+    str.eql(op, "^" ) ? _xor     () :
+    str.eql(op, "==") ? _eqlto   () :
+    str.eql(op, "!=") ? _neqlto  () :
+    str.eql(op, "<" ) ? _lt      () :
+    str.eql(op, ">" ) ? _gt      () :
+    str.eql(op, "<=") ? _lteqlto () :
+    str.eql(op, ">=") ? _gteqlto () :
     io.bomb("unknown operator '%s'", op);
 }
 
@@ -628,6 +629,7 @@ static void daop(char* op, char* lv)
     str.eql(op, "&=" ) ? _andeq (lv) :
     str.eql(op, "|=" ) ? _oreq  (lv) :
     str.eql(op, "^=" ) ? _xoreq (lv) :
+    str.eql(op, "="  ) ? _eql   (lv) :
     io.bomb("unknown lvalue operator '%s' on lvalue '%s'", op, lv);
 }
 
@@ -727,6 +729,7 @@ static void sprite()
 {
     char* name = io.gname();
     isndef(name);
+    io.print("%s:", name);
     io.match('=');
     io.match('{');
     int size = 0;
@@ -752,7 +755,6 @@ static void sprite()
     io.match(';');
     struct label sprite = { name, size, SPRITE };
     labels[l++] = sprite;
-    io.print("%s:", sprite.name);
 }
 
 // Declaring an identifier.
@@ -768,6 +770,23 @@ static void identifier()
     identing = 0;
 }
 
+static void block();
+
+// Declaring a while loop
+static void _while()
+{
+    const int b = branch++;
+    io.match('(');
+    io.print("WHILE%d:", b);
+    expression();
+    io.print("\tSNE V%1X,0x00", v);
+    io.print("\tJP END%d", b);
+    io.match(')');
+    block();
+    io.print("\tJP WHILE%d", b);
+    io.print("END%d:", b);
+}
+
 // Declaring a block.
 static void block()
 {
@@ -780,6 +799,10 @@ static void block()
         {
         case '{':
             block();
+            break;
+        case 'w':
+            io.matches("while");
+            _while();
             break;
         case 'b':
             io.matches("byte");
@@ -849,14 +872,6 @@ static void fun(const enum type type)
     reset();
 }
 
-static void vreset()
-{
-    io.print("START:");
-    io.print("\tCALL main");
-    io.print("LOOP:");
-    io.print("\tJP LOOP");
-}
-
 // Declaring a program.
 static void program()
 {
@@ -886,7 +901,6 @@ static void program()
         }
         io.skip();
     }
-    vreset();
 }
 
 const struct compile compile = {

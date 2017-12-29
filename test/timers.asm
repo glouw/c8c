@@ -18,7 +18,7 @@ LD_TEST:
     LD ST, V2 ; How to test this?
     RET
 
-MAIN:
+main:
     ; VE, if non-zero, indicates test failure
     LD VE, 0x00
     ; Test all

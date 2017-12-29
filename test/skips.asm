@@ -38,7 +38,7 @@ SNE_TEST:
     LD VE, 0x04
     RET
 
-MAIN:
+main:
     ; VE, if non-zero, indicates test failure
     LD VE, 0x00
     ; Test all

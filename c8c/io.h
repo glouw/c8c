@@ -6,7 +6,7 @@ struct io
     void  (*bomb)(const char* msg, ...);
     void  (*next)(void);
     void  (*skip)(void);
-    void  (*init)(void);
+    void  (*init)(char* argv[]);
     char  (*peek)(void);
     char* (*peeks)(void);
     int   (*isendexpr)(void);

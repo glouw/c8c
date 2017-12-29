@@ -9,7 +9,7 @@ CALL_TEST:
     CALL SUBROUTINE
     RET
 
-MAIN:
+main:
     ; VE, if non-zero, indicates test failure
     LD VE, 0x00
     ; Test all

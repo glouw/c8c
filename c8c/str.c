@@ -34,6 +34,7 @@ static int isassign(const char* s)
         || eql(s, ">>=")
         || eql(s, "&=" )
         || eql(s, "|=" )
+        || eql(s, "="  )
         || eql(s, "^=" );
 }
 
@@ -50,7 +51,7 @@ static int ischain(const char* s)
         || eql(s, "||")
         || eql(s, "<" )
         || eql(s, "<=")
-        || eql(s, "=" )
+        || eql(s, "!=")
         || eql(s, "==")
         || eql(s, "<<")
         || eql(s, ">>")
