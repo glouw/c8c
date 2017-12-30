@@ -9,8 +9,8 @@ ball[] = { 0x80 };
 // For 2d arrays, all elements must be the same size.
 
 sprite[][] = {
-    { 0x80, 0x80, 0x80, 0x80 },
-    { 0x80, 0x80, 0x80, 0x80 },
+    { 0x01, 0x02, 0x03, 0x04 },
+    { 0x11, 0x12, 0x13, 0x14 },
 };
 
 // Functions do not need return types as there is only one type.
@@ -28,7 +28,7 @@ setup(x, y)
     auto i = 0x6;
     auto j = 0x7;
     draw(x, y, ball);
-    draw(32, 8, pad);
+    draw(32, 8);
     return j;
 }
 
@@ -45,7 +45,7 @@ main()
     {
         // The previous ball is deleted here as drawing XORs the screen.
         draw(x, y, ball);
-        collide = draw(++x, y, sprite);
+        collide = draw(++x, y, ball);
     }
     clear();
     while(1)

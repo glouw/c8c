@@ -1,10 +1,27 @@
 # c8c
 
 c8c aims to be a relatively small c-like programming language for the chip8 platform.
+A virtual machine (emu) and assembler (asm) is also included. Running:
 
     make;
 
-c8c in itself is currently a work in progress, but you may have a look at the chip8 virtual
-machine and assembler meanwhile.
+Will build the compiler, assembler, and virtual machine, and then build all the
+unit tests for the virtual machine using the compiler and assembler.
 
-The tests folder contains assembly unit tests for the virtual machine.
+Outside of that, if you're looking to build and run your own c8 code:
+
+Compile your c8 program:
+
+    c8c main.c8 main.asm
+
+Assemble it:
+
+    asm main.asm main.hex
+
+Bin it:
+
+    bin main.hex main.bin
+
+And run it:
+
+    emu main.bin

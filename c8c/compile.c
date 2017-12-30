@@ -504,6 +504,17 @@ static void draw()
     if(index == -1)
         io.bomb("label '%s' not defined", label);
     io.print("\tLD I,%s", labels[index].name);
+    io.skip();
+    if(io.peek() == '[')
+    {
+        io.match('[');
+        char* offset = io.gnum();
+        io.match(']');
+        const int bytes = labels[index].args * tobyte(offset);
+        io.print("\tLD VF,0x%02X", bytes);
+        io.print("\tADD I,VF");
+        free(offset);
+    }
     io.print("\tDRW V%1X,V%1X,0x%1X", v - 2, v - 1, labels[index].args);
     free(label);
     v -= args;
@@ -888,10 +899,7 @@ static void fun(char* name)
         else io.bomb("unknown symbol in argument list");
         io.skip();
     }
-    struct label label = {
-        name,
-        args,
-    };
+    struct label label = { name, args };
     labels[l++] = label;
     io.print("%s:", name);
     io.match(')');
