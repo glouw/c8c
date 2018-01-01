@@ -54,6 +54,8 @@ static void bomb(const char* msg, ...)
     exit(1);
 }
 
+// Closes eveyrthing done. Removes the assembly file
+// if something went wrong during compilation.
 static void shutdown()
 {
     free(lbuff);
@@ -147,6 +149,7 @@ static int isendexpr()
 {
     return now == ';'
         || now == ')'
+        || now == ']'
         || now == ',';
 }
 

@@ -1,55 +1,25 @@
-// Sprite data and such are stored in arrays.
-// Elements of these arrays cannot be assigned to variables.
-// Variables cannot write to these arrays either.
-
-pad[] = { 0x80, 0x80, 0x80, 0x80, 0x80 };
-
-ball[] = { 0x80 };
-
-// For 2d arrays, all elements must be the same size.
-
-sprite[][] = {
-    { 0x01, 0x02, 0x03, 0x04 },
-    { 0x11, 0x12, 0x13, 0x14 },
+idle[][] = {
+    { 0x00, 0x00, 0x3C, 0x5A, 0x7E, 0x66, 0x7E, 0x3C },
+    { 0x00, 0x00, 0x3C, 0x7E, 0x5A, 0x7E, 0x6E, 0x3C },
 };
 
-// Functions do not need return types as there is only one type.
-// Functions always return something.
-// If return is not specified then then garbage is returned.
-
-setup(x, y)
+delay(t)
 {
-    auto c = 0x0;
-    auto d = 0x1;
-    auto e = 0x2;
-    auto f = 0x3;
-    auto g = 0x4;
-    auto h = 0x5;
-    auto i = 0x6;
-    auto j = 0x7;
-    draw(x, y, ball);
-    draw(32, 8);
-    return j;
+    while(t) { t -= 1; }
 }
-
-// Main is the entry point for all chip8 programs.
 
 main()
 {
-    auto x = 3 >> 1;
-    auto y = 10 + 3;
-    setup(x, y);
-    // Ball moves until it gets a collision.
-    auto collide = 0;
-    while(!collide)
-    {
-        // The previous ball is deleted here as drawing XORs the screen.
-        draw(x, y, ball);
-        collide = draw(++x, y, ball);
-    }
-    clear();
+    auto frame = 0;
+    auto state = 0;
+    auto y = 32 - 8;
+    auto x = 0;
     while(1)
     {
-        // Main must never leave.
+        clear();
+        draw(x, y, idle[frame]);
+        frame ^= 1;
+        x += 1;
+        delay(50);
     }
 }

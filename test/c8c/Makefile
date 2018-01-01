@@ -1,6 +1,6 @@
 ASM = ../../asm/asm
 BIN = xxd -r -p
-CMP = valgrind ../../c8c/c8c
+CMP = ../../c8c/c8c
 
 BINS = fun.bin
 HEXS = $(BINS:.bin=.hex)

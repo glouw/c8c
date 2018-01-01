@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 // Variable names.
 static int v;
@@ -25,11 +26,6 @@ labels[128];
 
 // Counter for branches.
 static int branch;
-
-// BNF syntaxing requires terms and expressions be mutually dependable.
-static char* term();
-
-static void expression();
 
 static void incv()
 {
@@ -99,20 +95,13 @@ static int find(const char* name)
     return -1;
 }
 
-// Ensures L-value is a name.
-static void lcheck(const char* lv, const char* op)
-{
-    if(!str.isname(lv))
-        io.bomb("'%s' must be lvalue for operator '%s'", lv, op);
-}
-
 // Returns the register number of a defined variable.
 static int gvar(char* name)
 {
     for(int i = 0; i < v; i++)
         if(str.eql(name, vars[i]))
             return i;
-    io.bomb("variable name '%s' not defined\n", name);
+    io.bomb("variable name '%s' not defined", name);
     return 0;
 }
 
@@ -133,23 +122,6 @@ static int isndef(char* name)
 static int tobyte(const char* value)
 {
     return strtol(value, NULL, 0) % 256;
-}
-
-/*
- * Code generation functions are prefixed with a single underscore
- */
-
-// Decerment.
-static void _dec(char* lv)
-{
-    io.print("\tLD VF,0x01");
-    io.print("\tSUB V%1X,VF", gvar(lv));
-}
-
-// Increment.
-static void _inc(char* lv)
-{
-    io.print("\tADD V%1X,0x01", gvar(lv));
 }
 
 // Negation.
@@ -188,18 +160,6 @@ static void _sub()
     io.print("\tSUB V%1X,V%1X", v - 1, v);
 }
 
-// Shift left.
-static void _shl()
-{
-    io.print("\tSHL V%1X,V%1X", v - 1, v - 1);
-}
-
-// Shift right.
-static void _shr()
-{
-    io.print("\tSHR V%1X,V%1X", v - 1, v - 1);
-}
-
 // Bitwise and.
 static void _and()
 {
@@ -218,30 +178,39 @@ static void _xor()
     io.print("\tXOR V%1X,V%1X", v - 1, v);
 }
 
+static void _move()
+{
+    io.print("\tLD V%1X,V%1X", v - 1, v);
+}
+
+// Logical or.
+static void _lor()
+{
+    _move();
+}
+
+// Logical and.
+static void _land()
+{
+    _move();
+}
+
 // Not equal to.
 static void _neqlto()
 {
-    const int b = branch++;
+    io.print("\tLD VF,0x00");
     io.print("\tSE V%1X,V%1X", v - 1, v);
-    io.print("\tJP ELS%d", b);
-    io.print("\tLD V%1X,0x00", v - 1);
-    io.print("\tJP END%d", b);
-    io.print("ELS%d:", b);
-    io.print("\tLD V%1X,0x01", v - 1);
-    io.print("END%d:", b);
+    io.print("\tLD VF,0x01");
+    io.print("\tLD V%1X,VF", v - 1);
 }
 
 // Equal to.
 static void _eqlto()
 {
-    const int b = branch++;
+    io.print("\tLD VF,0x01");
     io.print("\tSE V%1X,V%1X", v - 1, v);
-    io.print("\tJP ELS%d", b);
-    io.print("\tLD V%1X,0x01", v - 1);
-    io.print("\tJP END%d", b);
-    io.print("ELS%d:", b);
-    io.print("\tLD V%1X,0x00", v - 1);
-    io.print("END%d:", b);
+    io.print("\tLD VF,0x00");
+    io.print("\tLD V%1X,VF", v - 1);
 }
 
 // Less than.
@@ -272,107 +241,59 @@ static void _gteqlto()
     io.print("\tXOR V%1X,0x01", v - 1);
 }
 
-// Copy an R-value to its L-value.
-static void _cp()
+// Copy.
+static void _cp(char* ta)
 {
-    io.print("\tLD V%1X,V%1X", v - 1, v);
-}
-
-// Question mark.
-static void _q(const int b)
-{
-    io.print("\tSNE V%1X,0x00", v);
-    io.print("\tJP ELS%d", b);
-}
-
-// Colon.
-static void _c(const int b)
-{
-    io.print("\tJP END%d", b);
-    io.print("ELS%d", b);
+    io.print("\tLD V%1X,V%1X", gvar(ta), v - 1);
 }
 
 // Equal.
-static void _eql(char* lv)
+static void _eql(char* ta)
 {
-    io.print("\tLD V%1X,V%1X", gvar(lv), v);
+    _move();
+    _cp(ta);
 }
 
-// Add equal.
-static void _addeql(char* lv)
+static void _addeql(char* ta)
 {
-    io.print("\tADD V%1X,V%1X", gvar(lv), v);
     _add();
+    _cp(ta);
 }
 
-// Minus equal.
-static void _subeql(char* lv)
+static void _subeql(char* ta)
 {
-    io.print("\tSUB V%1X,V%1X", gvar(lv), v);
     _sub();
+    _cp(ta);
 }
 
-// Shift left equal.
-static void _shleq(char* lv)
+static void _xoreql(char* ta)
 {
-    const int _v = gvar(lv);
-    io.print("\tSHL V%1X,V%1X", _v, _v);
-    _shl();
-}
-
-// Shift right equal.
-static void _shreq(char* lv)
-{
-    const int _v = gvar(lv);
-    io.print("\tSHR V%1X,V%1X", _v, _v);
-    _shr();
-}
-
-// And equal.
-static void _andeq(char* lv)
-{
-    io.print("\tAND V%1X,V%1X", gvar(lv), v);
-    _and();
-}
-
-// Or equal.
-static void _oreq(char* lv)
-{
-    io.print("\tOR V%1X,V%1X", gvar(lv), v);
-    _or();
-}
-
-// Xor equal
-static void _xoreq(char* lv)
-{
-    io.print("\tXOR V%1X,V%1X", gvar(lv), v);
     _xor();
+    _cp(ta);
+}
+
+static void _andeql(char* ta)
+{
+    _and();
+    _cp(ta);
+}
+
+static void _oreql(char* ta)
+{
+    _or();
+    _cp(ta);
 }
 
 // Load name. Works on variable names only.
-static void _lname(char* lv)
+static void _lname(char* ta)
 {
-    io.print("\tLD V%1X,V%1X", v, gvar(lv));
+    io.print("\tLD V%1X,V%1X", v, gvar(ta));
 }
 
 // Load number.
-static void _lnum(char* rv)
+static void _lnum(char* tb)
 {
-    io.print("\tLD V%1X,0x%02X", v, tobyte(rv));
-}
-
-// Logical short-circuit and.
-static void _scandl(const int b)
-{
-    io.print("\tSNE V%1X,0x00", v);
-    io.print("\tJP END%d", b);
-}
-
-// Logical short-circuit or.
-static void _scorl(const int b)
-{
-    io.print("\tSE V%1X,0x00", v);
-    io.print("\tJP END%d", b);
+    io.print("\tLD V%1X,0x%02X", v, tobyte(tb));
 }
 
 // Pushes the stack to the stack frame.
@@ -395,32 +316,43 @@ static void _fpop()
     io.print("\tRET");
 }
 
-// Prefix increment an L-value. The L-value is checked.
-static char* inc()
+// Short circuit and (&&)
+static void _scand(const int b)
 {
-    io.match('+');
-    char* lv = io.gname();
-    lcheck(lv, "++");
-    _inc(lv);
-    _lname(lv);
-    return lv;
+    io.print("\tSNE V%1X,0x00", v - 1);
+    io.print("\tJP END%d", b);
 }
+
+// Short circuit or (||)
+static void _scor(const int b)
+{
+    io.print("\tSE V%1X,0x00", v - 1);
+    io.print("\tJP END%d", b);
+}
+
+// Short circuit end.
+static void _scend(const int b)
+{
+    io.print("\tSE V%1X,0x00", v);
+    io.print("\tLD V%1X,0x01", v);
+    io.print("END%d:", b);
+}
+
+static char* term();
 
 // Prefix not.
 static char* notl()
 {
     io.match('!');
-    char* lv = term();
+    char* ta = term();
     _notl();
-    return lv;
+    return ta;
 }
 
 // Prefix positive.
 static char* pos()
 {
     io.match('+');
-    if(io.peek() == '+')
-        return inc();
     return str.dup("+");
 }
 
@@ -428,32 +360,21 @@ static char* pos()
 static char* inv()
 {
     io.match('~');
-    char* lv = term();
+    char* ta = term();
     _inv();
-    return lv;
-}
-
-// Prefix decrement an L-value. The L-value is checked.
-static char* dec()
-{
-    io.match('-');
-    char* lv = io.gname();
-    lcheck(lv, "--");
-    _dec(lv);
-    _lname(lv);
-    return lv;
+    return ta;
 }
 
 // Prefix negate.
 static char* neg()
 {
     io.match('-');
-    if(io.peek() == '-')
-        return dec();
-    char* lv = term();
+    char* ta = term();
     _neg();
-    return lv;
+    return ta;
 }
+
+static void expression();
 
 // Force an expression.
 static char* fexp()
@@ -467,9 +388,9 @@ static char* fexp()
 // Digit loading.
 static char* lnum()
 {
-    char* rv = io.gnum();
-    _lnum(rv);
-    return rv;
+    char* tb = io.gnum();
+    _lnum(tb);
+    return tb;
 }
 
 // Saves a copy of the current stack frame.
@@ -493,27 +414,38 @@ static void ret()
 static void draw()
 {
     const int args = 2;
+    // The first two arguments are expressions for x,y.
     for(int i = 0; i < args; i++)
     {
         expression();
         incv();
         io.match(',');
     }
+    // The third argument is a label name for the sprite to draw.
     char* label = io.gname();
     const int index = find(label);
     if(index == -1)
         io.bomb("label '%s' not defined", label);
     io.print("\tLD I,%s", labels[index].name);
+    // Optionally, appending square brackets to the label will index
+    // the sprite by the size of the sprite. This is meant for 2D sprite arrays,
+    // but will work on 1D sprite arrays, so be warned.
     io.skip();
     if(io.peek() == '[')
     {
+        const int b = branch++;
         io.match('[');
-        char* offset = io.gnum();
+        expression();
         io.match(']');
-        const int bytes = labels[index].args * tobyte(offset);
-        io.print("\tLD VF,0x%02X", bytes);
+        io.print("WHILE%d:", b);
+        io.print("\tSNE V%X,0x00", v);
+        io.print("\tJP OUT%d", b);
+        io.print("\tLD VF,0x%02X", labels[index].args);
         io.print("\tADD I,VF");
-        free(offset);
+        io.print("\tLD VF,0x01");
+        io.print("\tSUB V%X,VF", v);
+        io.print("\tJP WHILE%d", b);
+        io.print("OUT%d:", b);
     }
     io.print("\tDRW V%1X,V%1X,0x%1X", v - 2, v - 1, labels[index].args);
     free(label);
@@ -572,10 +504,10 @@ static void call(const char* name)
 // Name loading.
 static char* lname()
 {
-    char* lv = io.gname();
+    char* ta = io.gname();
     io.skip();
-    io.peek() == '(' ? call(lv) : _lname(lv);
-    return lv;
+    io.peek() == '(' ? call(ta) : _lname(ta);
+    return ta;
 }
 
 // Terms may start with a prefix modifier, an alpha for a name load
@@ -602,134 +534,84 @@ static char* term()
 
 // Do chain operator.
 // Chain operators populate the stack from V0 upwards.
-static void dcop(char* op)
+static void dop(char* op, char* ta)
 {
-    str.eql(op, "+" ) ? _add     () :
-    str.eql(op, "-" ) ? _sub     () :
-    str.eql(op, "<<") ? _shl     () :
-    str.eql(op, ">>") ? _shr     () :
-    str.eql(op, "&" ) ? _and     () :
-    str.eql(op, "&&") ? _cp      () :
-    str.eql(op, "|" ) ? _or      () :
-    str.eql(op, "?" ) ? _cp      () :
-    str.eql(op, ":" ) ? _cp      () :
-    str.eql(op, "||") ? _cp      () :
-    str.eql(op, "^" ) ? _xor     () :
-    str.eql(op, "==") ? _eqlto   () :
-    str.eql(op, "!=") ? _neqlto  () :
-    str.eql(op, "<" ) ? _lt      () :
-    str.eql(op, ">" ) ? _gt      () :
-    str.eql(op, "<=") ? _lteqlto () :
-    str.eql(op, ">=") ? _gteqlto () :
+    str.eql(op, "=" ) ? _eql     (ta) :
+    str.eql(op, "+=") ? _addeql  (ta) :
+    str.eql(op, "-=") ? _subeql  (ta) :
+    str.eql(op, "^=") ? _xoreql  (ta) :
+    str.eql(op, "&=") ? _andeql  (ta) :
+    str.eql(op, "|=") ? _oreql   (ta) :
+    str.eql(op, "+" ) ? _add     ()   :
+    str.eql(op, "-" ) ? _sub     ()   :
+    str.eql(op, "&" ) ? _and     ()   :
+    str.eql(op, "^" ) ? _xor     ()   :
+    str.eql(op, "|" ) ? _or      ()   :
+    str.eql(op, "<" ) ? _lt      ()   :
+    str.eql(op, "<=") ? _lteqlto ()   :
+    str.eql(op, "!=") ? _neqlto  ()   :
+    str.eql(op, "==") ? _eqlto   ()   :
+    str.eql(op, "||") ? _lor     ()   :
+    str.eql(op, "&&") ? _land    ()   :
+    str.eql(op, "!" ) ? _notl    ()   :
+    str.eql(op, ">" ) ? _gt      ()   :
+    str.eql(op, ">=") ? _gteqlto ()   :
     io.bomb("unknown operator '%s'", op);
 }
 
-// Do assignment operator.
-// Assignment operators directly operate on an L-value.
-// The L-value will be checked before the assignment operator is done.
-static void daop(char* op, char* lv)
+// Names start with alpha characters or underscores.
+static int isname(const char* s)
 {
-    lcheck(lv, op);
-    str.eql(op, "+=" ) ? _addeql(lv) :
-    str.eql(op, "-=" ) ? _subeql(lv) :
-    str.eql(op, "<<=") ? _shleq (lv) :
-    str.eql(op, ">>=") ? _shreq (lv) :
-    str.eql(op, "&=" ) ? _andeq (lv) :
-    str.eql(op, "|=" ) ? _oreq  (lv) :
-    str.eql(op, "^=" ) ? _xoreq (lv) :
-    str.eql(op, "="  ) ? _eql   (lv) :
-    io.bomb("unknown lvalue operator '%s' on lvalue '%s'", op, lv);
+    if(s == NULL)
+        io.bomb("derefereced a null pointer.");
+    return isalpha(s[0]) || s[0] == '_';
 }
 
-// Do postfix operator.
-static char* dpop(char* lv, char* op)
-{
-    lcheck(lv, op);
-    str.eql(op, "++" ) ? _inc(lv) :
-    str.eql(op, "--" ) ? _dec(lv) :
-    io.bomb("unknown postfix operator '%s'", op);
-    free(op);
-    return io.gop();
-}
-
-// Do logical operator.
-static void dlop(char* op, const int b)
-{
-    str.eql(op, "&&") ? _scandl(b) :
-    str.eql(op, "||") ? _scorl (b) :
-    io.bomb("unknown logical operator");
-}
-
-// Expression ends logically.
-static void exendl()
-{
-    io.print("\tSE V%1X,0x00", v);
-    io.print("\tLD V%1X,0x01", v);
-}
-
-// Do ternary operation.
-static void dtop(char* op, const int b)
-{
-    str.eql(op, "?") ? _q(b) :
-    str.eql(op, ":") ? _c(b) :
-    io.bomb("unknown ternary operator '%s'", op);
-}
-
-// End of statement.
-static void ends(const int b)
-{
-    io.print("END%d:", b);
-}
-
-// L-value Operator R-value Operator L-value...
 static void expression()
 {
+    bool lvalue = false;
+    bool logical = false;
     const int b = branch++;
-    // L-Value.
-    char* lv = term();
-    int logical = 0;
+    char* ta = term();
+    if(isname(ta))
+        lvalue = true;
     while(!io.isendexpr())
     {
-        // Operator.
-        char* op = io.gop();
-        if(str.islogical(op))
-        {
-            dlop(op, b);
-            logical = 1;
-        }
-        else
-        if(str.istern(op))
-            dtop(op, b);
-        else
-        if(str.ispostfix(op))
-            op = dpop(lv, op);
-        // R-Value.
         incv();
-        char* rv = term();
-        if(str.isassign(op))
+        char* op = io.gop();
+        if(str.eql(op, "=" )
+        || str.eql(op, "+=")
+        || str.eql(op, "-="))
         {
-            if((str.eql(op, "<<=") || str.eql(op, ">>=")) && !str.eql(rv, "1"))
-                io.bomb("assignment shifts must be left or right by constant 1");
-            daop(op, lv);
+            if(lvalue == false)
+                io.bomb("expected lvalue to the left of operator '%s'", op);
+            expression();
         }
         else
-        if(str.ischain(op))
+        if(str.eql(op, "&&"))
         {
-            if((str.eql(op, "<<") || str.eql(op, ">>")) && !str.eql(rv, "1"))
-                io.bomb("values may only be shifted left or right by constant 1");
-            dcop(op);
+            logical = true;
+            _scand(b);
+            expression();
         }
+        else
+        if(str.eql(op, "||"))
+        {
+            logical = true;
+            _scor(b);
+            expression();
+        }
+        char* tb = term();
+        lvalue = false;
+        dop(op, ta);
         decv();
         free(op);
-        free(lv);
-        // As the chain progresses,
-        // the L-value becomes the R-value.
-        lv = rv;
+        free(ta);
+        ta = tb;
     }
-    free(lv);
     if(logical)
-        exendl();
-    ends(b);
+        _scend(b);
+    free(ta);
 }
 
 static int populate()
@@ -801,13 +683,19 @@ static void arr(char* name)
 // Declaring an identifier.
 static void identifier()
 {
-    char* name = io.gname();
-    isndef(name);
-    io.match('=');
-    expression();
+    do
+    {
+        char* name = io.gname();
+        isndef(name);
+        vars[v] = name;
+        io.match('=');
+        expression();
+        incv();
+        if(io.peek() == ',')
+            io.match(',');
+    }
+    while(io.peek() != ';');
     io.match(';');
-    vars[v] = name;
-    incv();
 }
 
 static void block();
