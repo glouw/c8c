@@ -1066,7 +1066,8 @@ static void program()
 
 int main(int argc, char* argv[])
 {
-    (void) argc;
+    if(argc != 3)
+        bomb("expected input and output file");
     finit(argv);
     linit();
     program();

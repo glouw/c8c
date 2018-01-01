@@ -1,36 +1,32 @@
 CC = gcc
 
-# Warnings flags.
-CFLAGS = -Wshadow -Wall -Wpedantic -Wextra -Wimplicit-fallthrough=5
-
-# Optimization flags.
+CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
 CFLAGS+= -Ofast -march=native
 
-# Linker flags.
 LDFLAGS = -lSDL2
 
-emu: emu.o
-	$(CC) $(CFLAGS) $(LDFLAGS) emu.c
+all: emu bin asm c8c
+	make clean -C tasm
+	make clean -C tc8c
+	make -C tasm
+	make -C tc8c
 
-asm: asm.o
-	$(CC) $(CFLAGS) asm.c
+emu: emu.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-c8c: c8c.o
-	$(CC) $(CFLAGS) c8c.c
+bin: bin.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-all:
-	emu
-	asm
-	c8c
-	make -C test/asm
-	make -C test/c8c
+asm: asm.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+c8c: c8c.c
+	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	rm -f asm
-	rm -f emu
 	rm -f c8c
-	rm -f asm.o
-	rm -f emu.o
-	rm -f c8c.o
-	make clean -C test/asm
-	make clean -C test/c8c
+	rm -f asm
+	rm -f bin
+	rm -f emu
+	make clean -C tasm
+	make clean -C tc8c

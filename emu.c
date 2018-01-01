@@ -217,17 +217,17 @@ static void discharge()
 
 int main(int argc, char* argv[])
 {
+    if(argc != 2)
+    {
+        fprintf(stderr, "error: too few or too many argmuents\n");
+        exit(1);
+    }
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(512, 256, 0, &window, &renderer);
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     key = SDL_GetKeyboardState(NULL);
-    if(argc != 2)
-    {
-        fprintf(stderr, "error: too few or too many argmuents\n");
-        exit(1);
-    }
     load(argv[1]);
     srand(time(0));
     for(int cycles = 0; !key[SDL_SCANCODE_END]; cycles++)

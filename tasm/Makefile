@@ -1,5 +1,5 @@
-ASM = ../../asm/asm
-BIN = xxd -r -p
+ASM = ../asm
+BIN = ../bin
 
 BINS = registers.bin flow.bin subroutines.bin skips.bin
 BINS+= timers.bin keypad.bin graphics.bin storage.bin

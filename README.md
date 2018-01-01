@@ -5,23 +5,15 @@ A virtual machine (emu) and assembler (asm) is also included. Running:
 
     make;
 
-Will build the compiler, assembler, and virtual machine, and then build all the
-unit tests for the virtual machine using the compiler and assembler.
+will build the compiler, assembler, and virtual machine, and then build all the
+unit tests (tasm, tc8c) for the virtual machine using the assembler and compiler.
 
-Outside of that, if you're looking to build and run your own c8 code:
-
-Compile your c8 program:
+If you're looking to build and run your own c8 code then piecewise invoke the toolchain:
 
     c8c main.c8 main.asm
 
-Assemble it:
-
     asm main.asm main.hex
 
-Bin it:
-
     bin main.hex main.bin
-
-And run it:
 
     emu main.bin
