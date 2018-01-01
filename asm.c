@@ -31,12 +31,7 @@ static void fshutdown()
         remove(hexid);
 }
 
-static void finit()
-{
-    atexit(fshutdown);
-}
-
-static void use(char* argv[])
+static void finit(char* argv[])
 {
     assem = argv[1];
     hexid = argv[2];
@@ -54,6 +49,7 @@ static void use(char* argv[])
         fprintf(stderr, "error: %s cannot be made\n", hexid);
         exit(1);
     }
+    atexit(fshutdown);
 }
 
 static char* dup(char* s)
@@ -580,10 +576,12 @@ static void enter(const char* entry, struct node* labels)
 
 int main(int argc, char* argv[])
 {
-    finit();
     if(argc != 3)
+    {
+        fprintf(stderr, "expected input and output arguments");
         exit(1);
-    use(argv);
+    }
+    finit(argv);
     // First pass
     struct node* labels = NULL;
     labels = scan(labels);
