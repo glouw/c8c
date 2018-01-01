@@ -504,21 +504,10 @@ static int assemble(char* mnemonic, char* operand, struct node* labels)
     return (*functions[index])(operand, labels);
 }
 
-static struct node* labels;
-
-static void lshutdown()
-{
-    burn(labels);
-}
-
-static void linit()
-{
-    atexit(lshutdown);
-}
-
-static void scan(bool growing)
+static struct node* scan(struct node* labels)
 {
     unsigned address = 0x0202;
+    const bool growing = labels == NULL;
 #define MAX 320
     char line[MAX];
     for(unsigned linenumber = 1; fgets(line, MAX, fi); linenumber++)
@@ -572,9 +561,10 @@ static void scan(bool growing)
             exit(1);
         }
     }
+    return labels;
 }
 
-static void enter(const char* entry)
+static void enter(const char* entry, struct node* labels)
 {
     struct node* reset = get(labels, entry);
     if(!reset)
@@ -592,13 +582,14 @@ int main(int argc, char* argv[])
         exit(1);
     use(argv);
     // First pass
-    linit();
-    scan(true);
+    struct node* labels = NULL;
+    labels = scan(labels);
     reset();
     // Reset vector
-    enter("main");
+    enter("main", labels);
     // Second pass
-    scan(false);
+    scan(labels);
+    burn(labels);
     // Done
     exit(0);
 }

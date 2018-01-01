@@ -15,7 +15,7 @@ emu: emu.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 bin: bin.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 asm: asm.c
 	$(CC) $(CFLAGS) $^ -o $@
