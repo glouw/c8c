@@ -496,8 +496,12 @@ static int compare(const void* a, const void* b)
 
 static int assemble(char* mnemonic, char* operand, struct node* labels)
 {
-#define size(array) sizeof(array) / sizeof(char*)
-    const char** found = (const char**) bsearch(mnemonic, mnemonics, size(mnemonics), sizeof(char*), compare);
+    const char** found = (const char**) bsearch(
+        mnemonic,
+        mnemonics,
+        sizeof(mnemonics) / sizeof(*mnemonics),
+        sizeof(char*),
+        compare);
     if(!found)
         return 3;
     int index = found - mnemonics;
@@ -508,9 +512,8 @@ static struct node* scan(struct node* labels)
 {
     unsigned address = 0x0202;
     const bool growing = labels == NULL;
-#define MAX 320
-    char line[MAX];
-    for(unsigned linenumber = 1; fgets(line, MAX, fi); linenumber++)
+    char line[320];
+    for(unsigned linenumber = 1; fgets(line, sizeof(line), fi); linenumber++)
     {
         char* label;
         char* mnemonic;
