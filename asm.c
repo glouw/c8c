@@ -4,33 +4,31 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-union
-{
-    struct
-    {
-        unsigned tree : 1, generator : 1;
-    }
-    bits;
-    unsigned any;
-}
-flags;
-
+// Input file.
 static FILE* fi;
 
+// Output file.
 static FILE* fo;
 
+// Name of assembly file.
 static char* assem;
 
+// Name of hex file.
 static char* hexid;
 
+// Failure flag goes high if anything went wrong during assembly.
+static bool failure;
+
+// Cleans up files. Uses failure flag to remove output hex file.
 static void fshutdown()
 {
     if(fi) fclose(fi);
     if(fo) fclose(fo);
-    if(flags.any)
+    if(failure)
         remove(hexid);
 }
 
+// Inits files.
 static void finit(char* argv[])
 {
     assem = argv[1];
@@ -52,6 +50,7 @@ static void finit(char* argv[])
     atexit(fshutdown);
 }
 
+// Duplicates a string.
 static char* dup(char* s)
 {
     int len = strlen(s) + 1;
@@ -59,12 +58,15 @@ static char* dup(char* s)
     return p ? (char*) memcpy(p, s, len) : NULL;
 }
 
-static void reset()
+// Rewinds both the input and output files.
+static void frewind()
 {
     rewind(fi);
     rewind(fo);
 }
 
+// Binary tree node.
+// Keeps track of label names and their addresses.
 struct node
 {
     char* name;
@@ -73,6 +75,7 @@ struct node
     struct node* r;
 };
 
+// New binary tree node.
 static struct node* build(char* name, unsigned address)
 {
     struct node* node = (struct node*) malloc(sizeof(*node));
@@ -83,6 +86,7 @@ static struct node* build(char* name, unsigned address)
     return node;
 }
 
+// Inserts a new node into a binary tree.
 static struct node* insert(struct node* nodes, struct node* node)
 {
     if(nodes == NULL)
@@ -92,7 +96,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     {
         free(node->name);
         free(node);
-        flags.bits.tree = true;
+        failure = true;
     }
     else if(difference < 0)
         nodes->l = insert(nodes->l, node);
@@ -101,6 +105,7 @@ static struct node* insert(struct node* nodes, struct node* node)
     return nodes;
 }
 
+// Gets a node from a binary tree. Returns NULL if node was not found.
 static struct node* get(struct node* nodes, const char* name)
 {
     if(nodes == NULL)
@@ -114,6 +119,7 @@ static struct node* get(struct node* nodes, const char* name)
         return get(nodes->r, name);
 }
 
+// Cleans up the binary tree.
 static void burn(struct node* nodes)
 {
     if(nodes == NULL)
@@ -129,16 +135,16 @@ static int add(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // ADD Vx, Vy
+    // ADD Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c4\n", a[1], b[1]);
-    // ADD I, Vx
+    // ADD I, Vx.
     else
     if(strlen(a) == 1 && a[0] == 'I' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c1E\n", b[1]);
-    // ADD Vx, byte
+    // ADD Vx, byte.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 4 && strncmp(b, "0x", 2) == 0 &&
@@ -155,7 +161,7 @@ static int _and(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // AND Vx, Vy
+    // AND Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c2\n", a[1], b[1]);
@@ -168,7 +174,7 @@ static int call(char* operand, struct node* labels)
 {
     char* a = strtok(operand, "\t ");
     struct node* found = get(labels, a);
-    // CALL address
+    // CALL address.
     if(found)
         fprintf(fo, "2%03X\n", found->address);
     else
@@ -179,6 +185,7 @@ static int call(char* operand, struct node* labels)
 static int cls(char* operand, struct node* labels)
 {
     (void )operand, (void) labels;
+    // CLS.
     fprintf(fo, "00E0\n");
     return 0;
 }
@@ -187,7 +194,7 @@ static int db(char* operand, struct node* labels)
 {
     (void) labels;
     char* a = strtok(operand, "\t ");
-    // DB
+    // DB (Define Byte).
     if(strlen(a) == 4 && strncmp(a, "0x", 2) == 0 &&
        isxdigit(a[2]) &&
        isxdigit(a[3]))
@@ -203,7 +210,7 @@ static int drw(char* operand, struct node* labels)
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ,");
     char* c = strtok(NULL, "\t ");
-    // DRW Vx, Vy, nib
+    // DRW Vx, Vy, nibble.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]) &&
        strlen(c) == 3 && strncmp(c, "0x", 2) == 0 && isxdigit(c[2]))
@@ -218,11 +225,11 @@ static int jp(char* operand, struct node* labels)
     struct node* found;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // JP V0, address
+    // JP V0, address.
     if(strlen(a) == 2 && a[0] == 'V' && a[1] == '0' &&
        (found = get(labels, b)))
            fprintf(fo, "B%03X\n", found->address);
-    // JP ad
+    // JP address.
     else
     if((found = get(labels, a)))
         fprintf(fo, "1%03X\n", found->address);
@@ -236,58 +243,58 @@ static int ld(char* operand, struct node* labels)
     struct node* found;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // LD DT, Vx
+    // LD DT, Vx.
     if(strlen(a) == 2 && a[0] == 'D' && a[1] == 'T' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c15\n", b[1]);
-    // LD ST, Vx
+    // LD ST, Vx.
     else
     if(strlen(a) == 2 && a[0] == 'S' && a[1] == 'T' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c18\n", b[1]);
-    // LD F, Vx
+    // LD F, Vx.
     else
     if(strlen(a) == 1 && a[0] == 'F' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c29\n", b[1]);
-    // LD B, Vx
+    // LD B, Vx.
     else
     if(strlen(a) == 1 && a[0] == 'B' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c33\n", b[1]);
-    // LD Vx, DT
+    // LD Vx, DT.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'D' && b[1] == 'T')
            fprintf(fo, "F%c07\n", a[1]);
-    // LD Vx, [I]
+    // LD Vx, [I].
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 3 && b[0] == '[' && b[1] == 'I' && b[2] == ']')
            fprintf(fo, "F%c65\n", a[1]);
-    // LD Vx, K
+    // LD Vx, K.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 1 && b[0] == 'K')
            fprintf(fo, "F%c0A\n", a[1]);
-    // LD Vx, Vy
+    // LD Vx, Vy.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c0\n", a[1], b[1]);
-    // LD Vx, byte
+    // LD Vx, byte.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
       (strlen(b) == 4 && strncmp(b, "0x", 2)) == 0 &&
       isxdigit(b[2]) &&
       isxdigit(b[3]))
            fprintf(fo, "6%c%c%c\n", a[1], b[2], b[3]);
-    // LD [I], Vx
+    // LD [I], Vx.
     else
     if(strlen(a) == 3 && a[0] == '[' && a[1] == 'I' && a[2] == ']' &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "F%c55\n", b[1]);
-    // LD I, ad
+    // LD I, address.
     else
     if(strlen(a) == 1 && a[0] == 'I')
     {
@@ -306,7 +313,7 @@ static int _or(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // OR Vx, Vy
+    // OR Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c1\n", a[1], b[1]);
@@ -318,7 +325,7 @@ static int _or(char* operand, struct node* labels)
 static int ret(char* operand, struct node* labels)
 {
     (void) operand, (void) labels;
-    // RET
+    // RET.
     fprintf(fo, "00EE\n");
     return 0;
 }
@@ -328,7 +335,7 @@ static int rnd(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // RND Vx, byte
+    // RND Vx, byte.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 4 && strncmp(b, "0x", 2) == 0 &&
        isxdigit(b[2]) &&
@@ -344,11 +351,11 @@ static int se(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SE Vx, Vy
+    // SE Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "5%c%c0\n", a[1], b[1]);
-    // SE Vx, byte
+    // SE Vx, byte.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 4 && strncmp(b, "0x", 2) == 0 &&
@@ -365,7 +372,7 @@ static int shl(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SHL Vx, Vy
+    // SHL Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%cE\n", a[1], b[1]);
@@ -379,7 +386,7 @@ static int shr(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SHR Vx, Vy
+    // SHR Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c6\n", a[1], b[1]);
@@ -392,7 +399,7 @@ static int sknp(char* operand, struct node* labels)
 {
     (void) labels;
     char* a = strtok(operand, "\t ");
-    // SKNP Vx
+    // SKNP Vx.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]))
         fprintf(fo, "E%cA1\n", a[1]);
     else
@@ -404,7 +411,7 @@ static int skp(char* operand, struct node* labels)
 {
     (void) labels;
     char* a = strtok(operand, "\t ");
-    // SKP Vx
+    // SKP Vx.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]))
         fprintf(fo, "E%c9E\n", a[1]);
     else
@@ -417,11 +424,11 @@ static int sne(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SNE Vx, Vy
+    // SNE Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "9%c%c0\n", a[1], b[1]);
-    // SNE Vx, byte
+    // SNE Vx, byte.
     else
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 4 && strncmp(b, "0x", 2) == 0 &&
@@ -438,7 +445,7 @@ static int sub(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SUB Vx, Vy
+    // SUB Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c5\n", a[1], b[1]);
@@ -452,7 +459,7 @@ static int subn(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // SUBN Vx, Vy
+    // SUBN Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c7\n", a[1], b[1]);
@@ -466,7 +473,7 @@ static int _xor(char* operand, struct node* labels)
     (void) labels;
     char* a = strtok(operand, "\t ,");
     char* b = strtok(NULL, "\t ");
-    // XOR Vx, Vy
+    // XOR Vx, Vy.
     if(strlen(a) == 2 && a[0] == 'V' && isxdigit(a[1]) &&
        strlen(b) == 2 && b[0] == 'V' && isxdigit(b[1]))
            fprintf(fo, "8%c%c3\n", a[1], b[1]);
@@ -496,12 +503,11 @@ static int assemble(char* mnemonic, char* operand, struct node* labels)
         mnemonic,
         mnemonics,
         sizeof(mnemonics) / sizeof(*mnemonics),
-        sizeof(char*),
+        sizeof(*mnemonics),
         compare);
     if(!found)
         return 3;
-    int index = found - mnemonics;
-    return (*functions[index])(operand, labels);
+    return (*functions[found - mnemonics])(operand, labels);
 }
 
 static struct node* scan(struct node* labels)
@@ -531,7 +537,7 @@ static struct node* scan(struct node* labels)
             if(growing)
             {
                 labels = insert(labels, build(label, address));
-                if(flags.bits.tree)
+                if(failure)
                 {
                     fprintf(stderr, "error: line %d: %s already defined\n", linenumber, label);
                     exit(1);
@@ -555,7 +561,7 @@ static struct node* scan(struct node* labels)
                 /* 2 */ "label not found",
                 /* 3 */ "unsupported chip8 mnemonic"
             };
-            flags.bits.generator = true;
+            failure = true;
             fprintf(stderr, "error: line %d: %s\n", linenumber, types[error]);
             exit(1);
         }
@@ -563,7 +569,8 @@ static struct node* scan(struct node* labels)
     return labels;
 }
 
-static void enter(const char* entry, struct node* labels)
+// Generates the reset vector for the entry label.
+static void rvec(const char* entry, struct node* labels)
 {
     struct node* reset = get(labels, entry);
     if(!reset)
@@ -582,15 +589,13 @@ int main(int argc, char* argv[])
         exit(1);
     }
     finit(argv);
-    // First pass
+    // First pass.
     struct node* labels = NULL;
     labels = scan(labels);
-    reset();
-    // Reset vector
-    enter("main", labels);
-    // Second pass
+    frewind();
+    // Second pass.
+    rvec("main", labels);
     scan(labels);
     burn(labels);
-    // Done
     exit(0);
 }
