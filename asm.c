@@ -570,7 +570,7 @@ static struct node* scan(struct node* labels)
 }
 
 // Generates the reset vector for the entry label.
-static void rvec(const char* entry, struct node* labels)
+static void rvec(struct node* labels, const char* entry)
 {
     struct node* reset = get(labels, entry);
     if(!reset)
@@ -594,7 +594,7 @@ int main(int argc, char* argv[])
     labels = scan(labels);
     frewind();
     // Second pass.
-    rvec("main", labels);
+    rvec(labels, "main");
     scan(labels);
     burn(labels);
     exit(0);
