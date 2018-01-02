@@ -5,6 +5,10 @@
 #include <ctype.h>
 #include <stdbool.h>
 
+static char* term();
+
+static void expression();
+
 // Variable names.
 static int v;
 
@@ -17,6 +21,7 @@ static struct label
 {
     char* name;
     int args;
+    int special;
 }
 labels[128];
 
@@ -32,21 +37,20 @@ static int nline = 1;
 // Input file (c8).
 static FILE* fi;
 
-static char* source;
-
 // Output file (asm).
 static FILE* fo;
 
-static char* assembly;
+// Input file name.
+static char* c8src;
+
+// Output file name.
+static char* assem;
 
 // Line buffer.
 static char* lbuff;
 
-// Number of characters reads from input file.
-static int reads;
-
 // Failure signaler raised by bomb(). Used to remove .c8 file at cleanup.
-static int failure;
+static bool failure;
 
 // Returns 1 if two strings match, else 0.
 static int eql(const char* a, const char* b)
@@ -81,7 +85,7 @@ static void bomb(const char* msg, ...)
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\n");
     va_end(args);
-    failure = 1;
+    failure = true;
     exit(1);
 }
 
@@ -93,12 +97,13 @@ static void fshutdown()
     if(fi) fclose(fi);
     if(fo) fclose(fo);
     if(failure)
-        remove(assembly);
+        remove(assem);
 }
 
 // Buffers a new character from the input file.
 static void buff()
 {
+    static int reads;
     lbuff[reads++] = now == '\n' ? '\0' : now;
     if(now == '\n')
     {
@@ -140,20 +145,20 @@ static void skip()
 
 static void finit(char* argv[])
 {
-    source = argv[1];
-    assembly = argv[2];
+    c8src = argv[1];
+    assem = argv[2];
     // Input
     fi = fopen(argv[1], "r");
     if(fi == NULL)
     {
-        fprintf(stderr, "error: %s does not exist\n", source);
+        fprintf(stderr, "error: %s does not exist\n", c8src);
         exit(1);
     }
     // Output
     fo = fopen(argv[2], "w");
     if(fo == NULL)
     {
-        fprintf(stderr, "error: %s cannot be made\n", assembly);
+        fprintf(stderr, "error: %s cannot be made\n", assem);
         exit(1);
     }
     atexit(fshutdown);
@@ -176,7 +181,7 @@ static char* peeks()
 }
 
 // Returns true if input file is now at the end of an expression.
-static int isendexpr()
+static bool isendexpr()
 {
     return now == ';'
         || now == ')'
@@ -185,7 +190,7 @@ static int isendexpr()
 }
 
 // Returns true if end of operator.
-static int isendop()
+static bool isendop()
 {
     return isalnum(now) || isspace(now) || isendexpr();
 }
@@ -322,8 +327,8 @@ static void lshutdown()
 static void linit()
 {
     struct label baked[] = {
-        { dup("draw"), 3 },
-        { dup("cls" ), 0 },
+        { dup("draw"), 3, 0 },
+        { dup("cls" ), 0, 0 },
     };
     for(unsigned i = 0; i < sizeof(baked) / sizeof(*baked); i++)
         labels[l++] = baked[i];
@@ -349,7 +354,7 @@ static int gvar(char* name)
 }
 
 // Returns true if a name is already defined, else exits
-static int isndef(char* name)
+static bool isndef(char* name)
 {
     // Checks vars.
     for(int i = 0; i < v; i++)
@@ -359,28 +364,30 @@ static int isndef(char* name)
     for(int i = 0; i < l; i++)
         if(eql(name, labels[i].name))
             bomb("label '%s' already defined", name);
-    return 1;
+    return true;
 }
 
+// All integers are unsigned byte sized.
 static int tobyte(const char* value)
 {
     return strtol(value, NULL, 0) % 256;
 }
 
-// Negation.
+// Negation (-).
 static void _neg()
 {
-    print("\tXOR V%1X,0xFF", v);
+    print("\tLD VF,0xFF");
+    print("\tXOR V%1X,VF", v);
     print("\tADD V%1X,0x01", v);
 }
 
-// Bitwise inversion.
+// Bitwise inversion (~).
 static void _inv()
 {
     print("\tXOR V%1X,0xFF", v);
 }
 
-// Logical not.
+// Logical not (!).
 static void _notl()
 {
     // Converts a positive number into logical 1.
@@ -391,31 +398,31 @@ static void _notl()
     print("\tXOR V%1X,VF", v);
 }
 
-// Addition.
+// Addition (+).
 static void _add()
 {
     print("\tADD V%1X,V%1X", v - 1, v);
 }
 
-// Subtraction.
+// Subtraction (-).
 static void _sub()
 {
     print("\tSUB V%1X,V%1X", v - 1, v);
 }
 
-// Bitwise and.
+// Bitwise and (&).
 static void _and()
 {
     print("\tAND V%1X,V%1X", v - 1, v);
 }
 
-// Bitwise or.
+// Bitwise or (|).
 static void _or()
 {
     print("\tOR V%1X,V%1X", v - 1, v);
 }
 
-// Bitwise xor.
+// Bitwise xor (^).
 static void _xor()
 {
     print("\tXOR V%1X,V%1X", v - 1, v);
@@ -426,19 +433,19 @@ static void _move()
     print("\tLD V%1X,V%1X", v - 1, v);
 }
 
-// Logical or.
+// Logical or (||).
 static void _lor()
 {
     _move();
 }
 
-// Logical and.
+// Logical and (&&).
 static void _land()
 {
     _move();
 }
 
-// Not equal to.
+// Not equal to (!=).
 static void _neqlto()
 {
     print("\tLD VF,0x00");
@@ -447,7 +454,7 @@ static void _neqlto()
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Equal to.
+// Equal to (==).
 static void _eqlto()
 {
     print("\tLD VF,0x01");
@@ -456,28 +463,28 @@ static void _eqlto()
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Less than.
+// Less than (<).
 static void _lt()
 {
     print("\tSUBN V%1X,V%1X", v - 1, v);
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Greater than.
+// Greater than (>).
 static void _gt()
 {
     print("\tSUB V%1X,V%1X", v - 1, v);
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Less than or equal to.
+// Less than or equal to (<=).
 static void _lteqlto()
 {
     _gt();
     print("\tXOR V%1X,0x01", v - 1);
 }
 
-// Greater than or equal to.
+// Greater than or equal to (>=).
 static void _gteqlto()
 {
     _lt();
@@ -490,37 +497,42 @@ static void _cp(char* ta)
     print("\tLD V%1X,V%1X", gvar(ta), v - 1);
 }
 
-// Equal.
+// Equal (=).
 static void _eql(char* ta)
 {
     _move();
     _cp(ta);
 }
 
+// Add equal (+=).
 static void _addeql(char* ta)
 {
     _add();
     _cp(ta);
 }
 
+// Subtract equal (-=)
 static void _subeql(char* ta)
 {
     _sub();
     _cp(ta);
 }
 
+// Xor equal (^=)
 static void _xoreql(char* ta)
 {
     _xor();
     _cp(ta);
 }
 
+// And equal (&=)
 static void _andeql(char* ta)
 {
     _and();
     _cp(ta);
 }
 
+// And equal (|=)
 static void _oreql(char* ta)
 {
     _or();
@@ -581,9 +593,7 @@ static void _scend(const int b)
     print("END%d:", b);
 }
 
-static char* term();
-
-// Prefix not.
+// Unary not.
 static char* notl()
 {
     match('!');
@@ -592,14 +602,36 @@ static char* notl()
     return ta;
 }
 
-// Prefix positive.
+// Unary sizeof.
+static char* size()
+{
+    matches("sizeof");
+    match('(');
+    char* name = gname();
+    const int index = find(name);
+    if(index == -1)
+        bomb("expected label");
+    skip();
+    if(peek() == '[')
+    {
+        match('[');
+        match(']');
+        print("\tLD V%1X,0x%02X", v, labels[index].special);
+    }
+    else
+        print("\tLD V%1X,0x%02X", v, labels[index].args);
+    match(')');
+    return name;
+}
+
+// Unary positive.
 static char* pos()
 {
     match('+');
-    return dup("+");
+    return term();
 }
 
-// Prefix bitwise invert.
+// Unary bitwise invert.
 static char* inv()
 {
     match('~');
@@ -608,7 +640,7 @@ static char* inv()
     return ta;
 }
 
-// Prefix negate.
+// Unary negate.
 static char* neg()
 {
     match('-');
@@ -616,8 +648,6 @@ static char* neg()
     _neg();
     return ta;
 }
-
-static void expression();
 
 // Force an expression.
 static char* fexp()
@@ -763,6 +793,7 @@ static char* term()
     // Modifiers.
     peek() == '~'   ? inv  () :
     peek() == '+'   ? pos  () :
+    peek() == 's'   ? size () :
     peek() == '!'   ? notl () :
     peek() == '-'   ? neg  () :
     // Enclosed in brackets.
@@ -803,7 +834,7 @@ static void dop(char* op, char* ta)
 }
 
 // Names start with alpha characters or underscores.
-static int isname(const char* s)
+static bool isname(const char* s)
 {
     if(s == NULL)
         bomb("derefereced a null pointer.");
@@ -814,7 +845,8 @@ static int isname(const char* s)
 static void expression()
 {
     bool lvalue = false;
-    bool logical = false;
+    // Goes high when using logical operators.
+    bool shorting = false;
     const int b = branch++;
     char* ta = term();
     if(isname(ta))
@@ -825,7 +857,10 @@ static void expression()
         char* op = gop();
         if(eql(op, "=" )
         || eql(op, "+=")
-        || eql(op, "-="))
+        || eql(op, "-=")
+        || eql(op, "^=")
+        || eql(op, "&=")
+        || eql(op, "|="))
         {
             if(lvalue == false)
                 bomb("expected lvalue to the left of operator '%s'", op);
@@ -834,26 +869,28 @@ static void expression()
         else
         if(eql(op, "&&"))
         {
-            logical = true;
+            shorting = true;
             _scand(b);
             expression();
         }
         else
         if(eql(op, "||"))
         {
-            logical = true;
+            shorting = true;
             _scor(b);
             expression();
         }
         char* tb = term();
+        // No longer are automatically once the second term is read.
         lvalue = false;
         dop(op, ta);
         decv();
         free(op);
         free(ta);
+        // Pass along terms to ease up freeing at the end.
         ta = tb;
     }
-    if(logical)
+    if(shorting)
         _scend(b);
     free(ta);
 }
@@ -889,10 +926,9 @@ static void arr(char* name)
 {
     isndef(name);
     print("%s:", name);
-    match('[');
-    match(']');
     skip();
     int size = 0;
+    int special = 0;
     if(peek() == '[')
     {
         // 2D array.
@@ -902,6 +938,7 @@ static void arr(char* name)
         match('{');
         size = populate();
         skip();
+        special++;
         while(peek() == ',')
         {
             match(',');
@@ -910,6 +947,7 @@ static void arr(char* name)
                 break;
             if(populate() != size)
                 bomb("array elements must be same length");
+            special++;
             skip();
         }
         match('}');
@@ -917,10 +955,11 @@ static void arr(char* name)
     else
     {
         match('=');
+        special = 1;
         size = populate();
     }
     match(';');
-    struct label sprite = { name, size };
+    struct label sprite = { name, size, special };
     labels[l++] = sprite;
 }
 
@@ -959,8 +998,7 @@ static void _while()
     print("END%d:", b);
 }
 
-// Declaring a block.
-// Blocks hold statements.
+// Declaring a block. Blocks hold statements.
 static void block()
 {
     int idents = 0;
@@ -1032,7 +1070,7 @@ static void fun(char* name)
         else bomb("unknown symbol in argument list");
         skip();
     }
-    struct label label = { name, args };
+    struct label label = { name, args, 0 };
     labels[l++] = label;
     print("%s:", name);
     match(')');
@@ -1051,6 +1089,7 @@ static void program()
         switch(peek())
         {
         case '[':
+        case '=':
             arr(name);
             break;
         case '(':
