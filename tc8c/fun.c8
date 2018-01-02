@@ -1,9 +1,4 @@
-egg[] = {
-    { 0x00, 0x00, 0x3C, 0x5A, 0x7E, 0x66, 0x7E, 0x3C },
-    { 0x00, 0x00, 0x3C, 0x7E, 0x5A, 0x7E, 0x6E, 0x3C },
-};
-
-baby[] = {
+idle[] = {
     { 0x00, 0x00, 0x3C, 0x5A, 0x7E, 0x66, 0x7E, 0x3C },
     { 0x00, 0x00, 0x3C, 0x7E, 0x5A, 0x7E, 0x6E, 0x3C },
 };
@@ -18,11 +13,33 @@ delay(t)
 
 main()
 {
-    auto
-        frame = 0,
-        state = 0;
-    auto y = 32 - sizeof(idle);
+    auto frame = 0;
+    auto y = 32 - @idle;
     auto x = 0;
+    auto place = 0;
+    if(place == 4)
+    {
+        x = 32;
+    }
+    else
+    if(place == 3)
+    {
+        x = 24;
+    }
+    else
+    if(place == 2)
+    {
+        x = 16;
+    }
+    else
+    if(place == 1)
+    {
+        x = 8;
+    }
+    else
+    {
+        x = ~0xFF;
+    }
     while(1)
     {
         clear();

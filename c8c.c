@@ -9,6 +9,8 @@ static char* term();
 
 static void expression();
 
+static void block();
+
 // Variable names.
 static int v;
 
@@ -167,13 +169,7 @@ static void finit(char* argv[])
     skip();
 }
 
-// Returns the current char of the input file.
-static char peek()
-{
-    return now;
-}
-
-// Same as peek(), but in string form.
+// String form of now.
 static char* peeks()
 {
     char n[] = { (char) now, '\0' };
@@ -384,7 +380,8 @@ static void _neg()
 // Bitwise inversion (~).
 static void _inv()
 {
-    print("\tXOR V%1X,0xFF", v);
+    print("\tLD VF,0xFF");
+    print("\tXOR V%1X,VF", v);
 }
 
 // Logical not (!).
@@ -593,6 +590,22 @@ static void _scend(const int b)
     print("END%d:", b);
 }
 
+static void _size(char* name)
+{
+    const int index = find(name);
+    if(index == -1)
+        bomb("expected label");
+    skip();
+    if(now == '[')
+    {
+        match('[');
+        match(']');
+        print("\tLD V%1X,0x%02X", v, labels[index].special);
+    }
+    else
+        print("\tLD V%1X,0x%02X", v, labels[index].args);
+}
+
 // Unary not.
 static char* notl()
 {
@@ -605,22 +618,9 @@ static char* notl()
 // Unary sizeof.
 static char* size()
 {
-    matches("sizeof");
-    match('(');
+    match('@');
     char* name = gname();
-    const int index = find(name);
-    if(index == -1)
-        bomb("expected label");
-    skip();
-    if(peek() == '[')
-    {
-        match('[');
-        match(']');
-        print("\tLD V%1X,0x%02X", v, labels[index].special);
-    }
-    else
-        print("\tLD V%1X,0x%02X", v, labels[index].args);
-    match(')');
+    _size(name);
     return name;
 }
 
@@ -704,7 +704,7 @@ static void draw()
     // the sprite by the size of the sprite. This is meant for 2D sprite arrays,
     // but will work on 1D sprite arrays, so be warned.
     skip();
-    if(peek() == '[')
+    if(now == '[')
     {
         const int b = branch++;
         match('[');
@@ -737,16 +737,16 @@ static void _call(const char* name)
     if(i == -1)
         bomb("function '%s' not defined", name);
     int args = 0;
-    while(peek() != ')')
+    while(now != ')')
     {
         expression();
         incv();
         args++;
         skip();
-        if(peek() == ',')
+        if(now == ',')
             match(',');
         else
-        if(peek() == ')')
+        if(now == ')')
             break;
         else bomb("unknown symbol in argument list");
     }
@@ -779,7 +779,7 @@ static char* lname()
 {
     char* ta = gname();
     skip();
-    peek() == '(' ? call(ta) : _lname(ta);
+    now == '(' ? call(ta) : _lname(ta);
     return ta;
 }
 
@@ -791,17 +791,17 @@ static char* term()
     skip();
     return
     // Modifiers.
-    peek() == '~'   ? inv  () :
-    peek() == '+'   ? pos  () :
-    peek() == 's'   ? size () :
-    peek() == '!'   ? notl () :
-    peek() == '-'   ? neg  () :
+    now == '~'   ? inv  () :
+    now == '+'   ? pos  () :
+    now == '@'   ? size () :
+    now == '!'   ? notl () :
+    now == '-'   ? neg  () :
     // Enclosed in brackets.
-    peek() == '('   ? fexp () :
+    now == '('   ? fexp () :
     // Name load.
-    isalpha(peek()) ? lname() :
+    isalpha(now) ? lname() :
     // Digit load.
-    isdigit(peek()) ? lnum () :
+    isdigit(now) ? lnum () :
     // Will return the string if nothing was done.
     peeks();
 }
@@ -899,7 +899,7 @@ static int populate()
 {
     match('{');
     int size = 0;
-    while(peek() != '}')
+    while(now != '}')
     {
         char* num = gnum();
         print("\tDB 0x%02X", tobyte(num));
@@ -908,11 +908,11 @@ static int populate()
         skip();
         // Bytes are separated by commas.
         // The last byte can be comma but does not have to be.
-        if(peek() == ',')
+        if(now == ',')
         {
             match(',');
             skip();
-            if(peek() == '}') break;
+            if(now == '}') break;
         }
     }
     if(size > 0xF)
@@ -929,7 +929,7 @@ static void arr(char* name)
     skip();
     int size = 0;
     int special = 0;
-    if(peek() == '[')
+    if(now == '[')
     {
         // 2D array.
         match('[');
@@ -939,11 +939,11 @@ static void arr(char* name)
         size = populate();
         skip();
         special++;
-        while(peek() == ',')
+        while(now == ',')
         {
             match(',');
             skip();
-            if(peek() == '}')
+            if(now == '}')
                 break;
             if(populate() != size)
                 bomb("array elements must be same length");
@@ -974,16 +974,14 @@ static void identifier()
         match('=');
         expression();
         incv();
-        if(peek() == ',')
+        if(now == ',')
             match(',');
     }
-    while(peek() != ';');
+    while(now != ';');
     match(';');
 }
 
-static void block();
-
-// Declaring a while loop
+// Declaring a while loop.
 static void _while()
 {
     const int b = branch++;
@@ -998,22 +996,57 @@ static void _while()
     print("END%d:", b);
 }
 
+// Declaring an if statement.
+static void _if()
+{
+    const int b = branch++;
+    match('(');
+    expression();
+    print("\tSNE V%1X,0x00", v);
+    print("\tJP ELSE%d", b);
+    match(')');
+    block();
+    skip();
+    print("\tJP END%d", b);
+    print("ELSE%d:", b);
+    if(now == 'e')
+    {
+        matches("else");
+        skip();
+        if(now == 'i')
+        {
+            matches("if");
+            _if();
+        }
+        else
+            block();
+    }
+    print("END%d:", b);
+}
+
 // Declaring a block. Blocks hold statements.
 static void block()
 {
     int idents = 0;
     match('{');
-    while(peek() != '}')
+    while(now != '}')
     {
         skip();
-        switch(peek())
+        switch(now)
         {
         case '{':
             block();
             break;
+        // Unfortunately, as things are set up here,
+        // terms staring with w, i, a, and r
+        // will expect either while, if, auto, or return.
         case 'w':
             matches("while");
             _while();
+            break;
+        case 'i':
+            matches("if");
+            _if();
             break;
         case 'a':
             matches("auto");
@@ -1022,7 +1055,7 @@ static void block()
             break;
         case 'r':
             matches("return");
-            if(!isspace(peek()))
+            if(!isspace(now))
                 bomb("expected space after 'return'");
             ret();
             break;
@@ -1046,13 +1079,13 @@ static void fun(char* name)
     match('(');
     skip();
     int args = 0;
-    while(peek() != ')')
+    while(now != ')')
     {
         char* arg = gname();
         isndef(arg);
         skip();
         // Arguments can be separated by a comma or a closing paren.
-        if(peek() == ',')
+        if(now == ',')
         {
             match(',');
             vars[v] = arg;
@@ -1061,7 +1094,7 @@ static void fun(char* name)
         }
         // If its a closing paren then there are no more args.
         else
-        if(peek() == ')')
+        if(now == ')')
         {
             vars[v] = arg;
             incv();
@@ -1086,7 +1119,7 @@ static void program()
     {
         char* name = gname();
         skip();
-        switch(peek())
+        switch(now)
         {
         case '[':
         case '=':
@@ -1096,7 +1129,7 @@ static void program()
             fun(name);
             break;
         default:
-            bomb("symbol '%c' not known", peek());
+            bomb("symbol '%c' not known", now);
             break;
         }
         skip();
