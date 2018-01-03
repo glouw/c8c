@@ -24,7 +24,7 @@ c8c is typeless; everything is one byte big.
 
     main()
     {
-        byte a = 0x0;
+        auto a = 0x0;
         while(1)
         {
             if(1) { a = sub(42, 11); } else { a = add(11, 42); }
