@@ -1,6 +1,6 @@
 ASM = ../asm
 BIN = ../bin
-CMP = ../c8c
+CMP = valgrind --leak-check=full ../c8c
 
 BINS = fun.bin
 HEXS = $(BINS:.bin=.hex)
