@@ -10,9 +10,7 @@ Running:
 will build the compiler, assembler, and virtual machine.
 Assembly unit tests (tasm) and source unit tests (tc8c) will then be built with the assembler and compiler.
 
-C8C is typeless. Everything is one byte in size.
-
-You'll be right at home with the c8c syntax:
+c8c is typeless; everything is one byte big.
 
     add(a, b)
     {
