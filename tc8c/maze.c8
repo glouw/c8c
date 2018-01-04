@@ -1,0 +1,28 @@
+r = { 0x80, 0x40, 0x20, 0x10 };
+l = { 0x20, 0x40, 0x80, 0x10 };
+
+main()
+{
+    auto x = 0, xmax = 64, dx = 4;
+    auto y = 0, ymax = 32, dy = 4;
+    while(y < ymax)
+    {
+        if(rand() & 0x1)
+        {
+            draw(x, y, r);
+        }
+        else
+        {
+            draw(x, y, l);
+        }
+        if((x += dx) == xmax)
+        {
+            x = 0;
+            y += dy;
+        }
+    }
+    while(1)
+    {
+        // Never leave main.
+    }
+}

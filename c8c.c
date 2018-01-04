@@ -171,6 +171,7 @@ static void init(char* argv[])
     struct label baked[] = {
         { dup("draw"   ), 3, 0 },
         { dup("putnum" ), 3, 0 },
+        { dup("rand"   ), 0, 0 },
         { dup("cls"    ), 0, 0 },
         { dup("sizeof" ), 1, 0 },
     };
@@ -704,6 +705,12 @@ static void clear()
     print("\tCLS");
 }
 
+// Random number. Inlined for performance.
+static void rnd()
+{
+    print("\tRND VF,0xFF");
+}
+
 // Generate function call.
 static void gfcall(const char* name)
 {
@@ -758,6 +765,7 @@ static void fcall(const char* name)
     eql(name, "draw")   ? draw()   :
     eql(name, "sizeof") ? szof()   :
     eql(name, "putnum") ? putnum() :
+    eql(name, "rand")   ? rnd()    :
     eql(name, "clear")  ? clear()  : gfcall(name);
     match(')');
     // Load return value.

@@ -2,25 +2,36 @@
 
 c8c aims to be a relatively small typeless c-like programming language for the CHIP-8 platform:
 
-    mul(a, b)
-    {
-        if(b == 0)
-        {
-            return 0;
-        }
-        return a + mul(a, b - 1);
-    }
+    r = { 0x80, 0x40, 0x20, 0x10 };
+    l = { 0x20, 0x40, 0x80, 0x10 };
 
     main()
     {
-        putnum(24, 13, mul(9, 9));
+        auto x = 0, xmax = 64, dx = 4;
+        auto y = 0, ymax = 32, dy = 4;
+        while(y < ymax)
+        {
+            if(rand() & 0x1)
+            {
+                draw(x, y, r);
+            }
+            else
+            {
+                draw(x, y, l);
+            }
+            if((x += dx) == xmax)
+            {
+                x = 0;
+                y += dy;
+            }
+        }
         while(1)
         {
-            // Wait here forever.
+            // Never leave main.
         }
     }
 
-![Screenshot](scrots/2018-01-04-003042_512x256_scrot.png)
+![Screenshot](scrots/2018-01-04-140651_512x256_scrot.png)
 
 First build the tool chain:
 
