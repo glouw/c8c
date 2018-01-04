@@ -9,7 +9,7 @@ mul(a, b)
 
 main()
 {
-    putnum(24, 13, mul(9, 9));
+    putchar(24, 13, mul(9, 9));
     while(1)
     {
         // Wait here forever.

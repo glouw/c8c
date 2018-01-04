@@ -170,8 +170,9 @@ static void init(char* argv[])
 {
     struct label baked[] = {
         { dup("draw"   ), 3, 0 },
-        { dup("putnum" ), 3, 0 },
+        { dup("putchar"), 3, 0 },
         { dup("rand"   ), 0, 0 },
+        { dup("getchar"), 0, 0 },
         { dup("cls"    ), 0, 0 },
         { dup("sizeof" ), 1, 0 },
     };
@@ -607,37 +608,43 @@ static void sret()
     gfpop();
 }
 
-// Putnumber. Does not inline.
-static void putnum()
+// Get character.
+static void getchr()
 {
-    int args = 0;
-    // The first three arguments are expressions
-    // for x, y, and the number to draw to the screen.
-    expression(NULL, true);
-    incv();
-    args++;
-    do
-    {
-        match(',');
-        expression(NULL, true);
-        incv();
-        skip();
-        args++;
-    }
-    while(now != ')');
-    if(args != 3)
-        bomb("putnum expects three arguments");
-    v -= args;
-    move(args);
-    // Shift up.
-    // V0, V1, V2 will be populated by I, I+1, I+2.
+    print("getchar:");
+    print("\tLD V0,0xFF"); // Return value.
+    print("\tLD V1,0x00\n\tSKNP V1\n\tLD V0,0x00");
+    print("\tLD V1,0x01\n\tSKNP V1\n\tLD V0,0x01");
+    print("\tLD V1,0x02\n\tSKNP V1\n\tLD V0,0x02");
+    print("\tLD V1,0x03\n\tSKNP V1\n\tLD V0,0x03");
+    print("\tLD V1,0x04\n\tSKNP V1\n\tLD V0,0x04");
+    print("\tLD V1,0x05\n\tSKNP V1\n\tLD V0,0x05");
+    print("\tLD V1,0x06\n\tSKNP V1\n\tLD V0,0x06");
+    print("\tLD V1,0x07\n\tSKNP V1\n\tLD V0,0x07");
+    print("\tLD V1,0x08\n\tSKNP V1\n\tLD V0,0x08");
+    print("\tLD V1,0x09\n\tSKNP V1\n\tLD V0,0x09");
+    print("\tLD V1,0x0A\n\tSKNP V1\n\tLD V0,0x0A");
+    print("\tLD V1,0x0B\n\tSKNP V1\n\tLD V0,0x0B");
+    print("\tLD V1,0x0C\n\tSKNP V1\n\tLD V0,0x0C");
+    print("\tLD V1,0x0D\n\tSKNP V1\n\tLD V0,0x0D");
+    print("\tLD V1,0x0E\n\tSKNP V1\n\tLD V0,0x0E");
+    print("\tLD V1,0x0F\n\tSKNP V1\n\tLD V0,0x0F");
+    // Done, restore return value.
+    gfpop();
+}
+
+// Put charater.
+static void putchr()
+{
+    const int spacing = 1;
+    const int width = 4;
+    print("putchar:");
+    // Shift up: V0, V1, V2 will be populated by I, I+1, I+2.
     print("\tLD V5,V2"); // N
     print("\tLD V4,V1"); // Y
     print("\tLD V3,V0"); // X
     // V6 will serve as a collision flag.
     print("\tLD V6,0x00");
-    const int spacing = 1;
-    const int width = 4;
     print("\tLD B,V5");
     print("\tLD V2,[I]");
     // First.
@@ -655,7 +662,8 @@ static void putnum()
     print("\tDRW V3,V4,0x5");
     print("\tOR V6,VF");
     // Done. Restore return value.
-    print("\tLD VF,V6");
+    v = 6;
+    gfpop();
 }
 
 // Draw. Hardcoded inline for performance.
@@ -761,12 +769,11 @@ static void szof()
 static void fcall(const char* name)
 {
     match('(');
-    // Built in functions will inline.
-    eql(name, "draw")   ? draw()   :
-    eql(name, "sizeof") ? szof()   :
-    eql(name, "putnum") ? putnum() :
-    eql(name, "rand")   ? rnd()    :
-    eql(name, "clear")  ? clear()  : gfcall(name);
+    // These built in functions that will inline.
+    eql(name, "draw")    ? draw()   :
+    eql(name, "sizeof")  ? szof()   :
+    eql(name, "rand")    ? rnd()    :
+    eql(name, "clear")   ? clear()  : gfcall(name);
     match(')');
     // Load return value.
     print("\tLD V%1X,VF", v);
@@ -1121,6 +1128,13 @@ static void fun(char* n)
     reset();
 }
 
+void stdio()
+{
+    print(";stdio: Standard Input and Output library");
+    getchr();
+    putchr();
+}
+
 // Declaring a program.
 // Programs are defined by functions and spirte arrays.
 static void program()
@@ -1144,6 +1158,8 @@ static void program()
         }
         skip();
     }
+    // Libraries to link at compile time.
+    stdio();
 }
 
 // Rock and Roll, baby.

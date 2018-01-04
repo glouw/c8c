@@ -1,0 +1,12 @@
+main()
+{
+    while(1)
+    {
+        auto a = getchar();
+        if(a != 0xFF)
+        {
+            clear();
+            putchar(0, 0, a);
+        }
+    }
+}

@@ -2,17 +2,17 @@ ASM = ../asm
 BIN = ../bin
 CMP = ../c8c
 
-BINS = fun.bin logical.bin mul.bin maze.bin
+BINS = logical.bin mul.bin maze.bin tty.bin
 HEXS = $(BINS:.bin=.hex)
 ASMS = $(BINS:.bin=.asm)
 
 all: $(BINS)
 
-fun.bin: fun.hex
+tty.bin: tty.hex
 	$(BIN) $^ $@
-fun.hex: fun.asm
+tty.hex: tty.asm
 	$(ASM) $^ $@
-fun.asm: fun.c8
+tty.asm: tty.c8
 	$(CMP) $^ $@
 
 maze.bin: maze.hex
