@@ -7,6 +7,7 @@
 // Synopsis:
 //   Tests logical operators && and ||. Forces logical operators
 //   to see if left to right association holds.
+//   At the end of the program, upon failure, a flashing zero is drawn.
 //
 // Size estimate:
 //   2200 bytes

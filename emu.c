@@ -249,5 +249,4 @@ int main(int argc, char* argv[])
     SDL_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    dump();
 }
