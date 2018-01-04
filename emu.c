@@ -215,6 +215,12 @@ static void discharge()
             charges[j][i] *= 0.997;
 }
 
+void dump()
+{
+    for(int i = 0; i < VSIZE; i++)
+        printf("v[%02d]: %d = 0x%02X\n", i, v[i], v[i]);
+}
+
 int main(int argc, char* argv[])
 {
     if(argc != 2)
@@ -243,4 +249,5 @@ int main(int argc, char* argv[])
     SDL_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    dump();
 }

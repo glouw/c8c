@@ -170,6 +170,7 @@ static void init(char* argv[])
 {
     struct label baked[] = {
         { dup("draw"   ), 3, 0 },
+        { dup("putnum" ), 3, 0 },
         { dup("cls"    ), 0, 0 },
         { dup("sizeof" ), 1, 0 },
     };
@@ -605,6 +606,57 @@ static void sret()
     gfpop();
 }
 
+// Putnumber. Does not inline.
+static void putnum()
+{
+    int args = 0;
+    // The first three arguments are expressions
+    // for x, y, and the number to draw to the screen.
+    expression(NULL, true);
+    incv();
+    args++;
+    do
+    {
+        match(',');
+        expression(NULL, true);
+        incv();
+        skip();
+        args++;
+    }
+    while(now != ')');
+    if(args != 3)
+        bomb("putnum expects three arguments");
+    v -= args;
+    move(args);
+    // Shift up.
+    // V0, V1, V2 will be populated by I, I+1, I+2.
+    print("\tLD V5,V2"); // N
+    print("\tLD V4,V1"); // Y
+    print("\tLD V3,V0"); // X
+    // V6 will serve as a collision flag.
+    print("\tLD V6,0x00");
+    const int spacing = 1;
+    const int width = 4;
+    print("\tLD B,V5");
+    print("\tLD V2,[I]");
+    // First.
+    print("\tLD F,V0");
+    print("\tDRW V3,V4,0x5");
+    print("\tOR V6,VF");
+    // Second.
+    print("\tLD F,V1");
+    print("\tADD V3,0x%02X", width + spacing);
+    print("\tDRW V3,V4,0x5");
+    print("\tOR V6,VF");
+    // Third.
+    print("\tLD F,V2");
+    print("\tADD V3,0x%02X", width + spacing);
+    print("\tDRW V3,V4,0x5");
+    print("\tOR V6,VF");
+    // Done. Restore return value.
+    print("\tLD VF,V6");
+}
+
 // Draw. Hardcoded inline for performance.
 static void draw()
 {
@@ -703,9 +755,10 @@ static void fcall(const char* name)
 {
     match('(');
     // Built in functions will inline.
-    eql(name, "draw")   ? draw() :
-    eql(name, "sizeof") ? szof() :
-    eql(name, "clear")  ? clear() : gfcall(name);
+    eql(name, "draw")   ? draw()   :
+    eql(name, "sizeof") ? szof()   :
+    eql(name, "putnum") ? putnum() :
+    eql(name, "clear")  ? clear()  : gfcall(name);
     match(')');
     // Load return value.
     print("\tLD V%1X,VF", v);
@@ -1049,6 +1102,10 @@ static void fun(char* n)
     labels[l++] = label;
     print("%s:", n);
     match(')');
+    // VE must start here for stack space to avoid
+    // trampling over the built in font array.
+    if(eql(n, "main"))
+        print("\tLD VE,0x10");
     dblock();
     // Note the popping here occurs after the block statement. The block statement
     // clears up any internal identifiers, so fpop will return V0 into VF.

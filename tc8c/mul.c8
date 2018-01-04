@@ -1,0 +1,17 @@
+multiply(a, b)
+{
+    if(b == 0)
+    {
+        return 0;
+    }
+    return a + multiply(a, b - 1);
+}
+
+main()
+{
+    putnum(24, 13, multiply(9, 9));
+    while(1)
+    {
+        // Wait here forever.
+    }
+}

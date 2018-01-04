@@ -1,2 +1,2 @@
-These ASM files were hand-written for the assembler.
-They act as unit tests for the assembler and the virtual machine.
+These ASM files were hand-written to unit test the virtual machine.
+They return 1 if they succeed and 0 if they fail.

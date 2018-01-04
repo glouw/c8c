@@ -2,7 +2,7 @@ ASM = ../asm
 BIN = ../bin
 CMP = ../c8c
 
-BINS = fun.bin logical.bin
+BINS = fun.bin logical.bin mul.bin
 HEXS = $(BINS:.bin=.hex)
 ASMS = $(BINS:.bin=.asm)
 
@@ -20,6 +20,13 @@ logical.bin: logical.hex
 logical.hex: logical.asm
 	$(ASM) $^ $@
 logical.asm: logical.c8
+	$(CMP) $^ $@
+
+mul.bin: mul.hex
+	$(BIN) $^ $@
+mul.hex: mul.asm
+	$(ASM) $^ $@
+mul.asm: mul.c8
 	$(CMP) $^ $@
 
 clean:

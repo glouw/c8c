@@ -1,37 +1,30 @@
 # c8c
 
-c8c aims to be a relatively small c-like programming language for the chip8 platform.
-Included is a virtual machine (emu) and assembler (asm).
+c8c aims to be a relatively small c-like programming language for the CHIP-8 platform:
 
-Running:
-
-    make
-
-will build the compiler, assembler, and virtual machine.
-Assembly unit tests (tasm) and source unit tests (tc8c) will then be built with the assembler and compiler.
-
-c8c is typeless; everything is one byte big.
-
-    add(a, b)
+    multiply(a, b)
     {
-        return a + b;
-    }
-
-    sub(a, b)
-    {
-        return a - b;
+        if(b == 0)
+        {
+            return 0;
+        }
+        return a + multiply(a, b - 1);
     }
 
     main()
     {
-        auto a = 0x0;
+        putnum(24, 13, multiply(9, 9));
         while(1)
         {
-            if(1) { a = sub(42, 11); } else { a = add(11, 42); }
+            // Wait here forever.
         }
     }
 
-If you're looking to build and run your own c8 code then piecewise invoke the toolchain:
+First build the tool chain:
+
+    make
+
+To build your own c8 code, piecewise invoke the toolchain:
 
     c8c main.c8 main.asm
 

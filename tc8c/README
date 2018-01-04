@@ -1,0 +1,2 @@
+These are c8 source files for use with the c8c compiler.
+They compile down to CHIP-8 ASM.
