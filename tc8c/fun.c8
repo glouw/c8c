@@ -5,45 +5,19 @@ idle[] = {
 
 delay(t)
 {
-    while(t)
-    {
-        t -= 1;
-    }
+    while(t) { t -= 1; }
 }
 
 main()
 {
+    auto i = 0, e = 0, r = 0, w = 0;
     auto frame = 0;
-    auto y = 32 - @idle;
+    auto y = 32 - sizeof(idle[]);
     auto x = 0;
-    auto place = 0;
-    if(place == 4)
-    {
-        x = 32;
-    }
-    else
-    if(place == 3)
-    {
-        x = 24;
-    }
-    else
-    if(place == 2)
-    {
-        x = 16;
-    }
-    else
-    if(place == 1)
-    {
-        x = 8;
-    }
-    else
-    {
-        x = ~0xFF;
-    }
     while(1)
     {
         clear();
-        draw(x, y, idle[frame]);
+        0 || 0 || 0 || 0 || draw(x, y, idle[frame]);
         frame ^= 1;
         x += 1;
         delay(50);

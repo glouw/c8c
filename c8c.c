@@ -15,7 +15,7 @@
 
 static char* term();
 
-static void expression(char* overrider);
+static void expression(char* overrider, const bool shortable);
 
 static void dblock();
 
@@ -169,8 +169,9 @@ static void shutdown()
 static void init(char* argv[])
 {
     struct label baked[] = {
-        { dup("draw"), 3, 0 },
-        { dup("cls" ), 0, 0 },
+        { dup("draw"   ), 3, 0 },
+        { dup("cls"    ), 0, 0 },
+        { dup("sizeof" ), 1, 0 },
     };
     for(unsigned i = 0; i < sizeof(baked) / sizeof(*baked); i++)
         labels[l++] = baked[i];
@@ -531,49 +532,10 @@ static void gfpop()
 {
     print("\tLD VF,0x03");
     print("\tSUB VE,VF");
+    print("\tLD VF,V%1X", v);
     print("\tLD F,VE");
     print("\tLD VE,[I]");
-    print("\tLD VF,V%1X", v);
     print("\tRET");
-}
-
-// Generate short circuit and (&&)
-static void gscand(const int b)
-{
-    print("\tSNE V%1X,0x00", v - 1);
-    print("\tJP END%d", b);
-}
-
-// Generate short circuit or (||)
-static void gscor(const int b)
-{
-    print("\tSE V%1X,0x00", v - 1);
-    print("\tJP END%d", b);
-}
-
-// Generate short circuit end.
-static void gscend(const int b)
-{
-    print("\tSE V%1X,0x00", v);
-    print("\tLD V%1X,0x01", v);
-    print("END%d:", b);
-}
-
-// Generate size.
-static void gsize(char* name)
-{
-    const int index = find(name);
-    if(index == -1)
-        bomb("expected label");
-    skip();
-    if(now == '[')
-    {
-        match('[');
-        match(']');
-        print("\tLD V%1X,0x%02X", v, labels[index].height);
-    }
-    else
-        print("\tLD V%1X,0x%02X", v, labels[index].args);
 }
 
 // Unary not.
@@ -583,15 +545,6 @@ static char* notl()
     char* ta = term();
     gnotl();
     return ta;
-}
-
-// Unary sizeof.
-static char* size()
-{
-    match('@');
-    char* n = name();
-    gsize(n);
-    return n;
 }
 
 // Unary positive.
@@ -623,7 +576,7 @@ static char* neg()
 static char* fexp()
 {
     match('(');
-    expression(NULL);
+    expression(NULL, true);
     match(')');
     return dup(")");
 }
@@ -647,7 +600,7 @@ static void move(const int args)
 // Return.
 static void sret()
 {
-    expression(NULL);
+    expression(NULL, true);
     match(';');
     gfpop();
 }
@@ -659,7 +612,7 @@ static void draw()
     // The first two arguments are expressions for x, y.
     for(int i = 0; i < args; i++)
     {
-        expression(NULL);
+        expression(NULL, true);
         incv();
         match(',');
     }
@@ -676,7 +629,7 @@ static void draw()
     {
         const int b = branch++;
         match('[');
-        expression(NULL);
+        expression(NULL, true);
         match(']');
         print("WHILE%d:", b);
         print("\tSNE V%X,0x00", v);
@@ -708,7 +661,7 @@ static void gfcall(const char* name)
     int args = 0;
     while(now != ')')
     {
-        expression(NULL);
+        expression(NULL, true);
         incv();
         args++;
         skip();
@@ -726,13 +679,33 @@ static void gfcall(const char* name)
     print("\tCALL %s", name);
 }
 
+// Generate size.
+static void szof()
+{
+    char* n = name();
+    const int index = find(n);
+    if(index == -1)
+        bomb("expected label but got %s", n);
+    free(n);
+    skip();
+    if(now == '[')
+    {
+        match('[');
+        match(']');
+        print("\tLD VF,0x%02X", labels[index].height);
+    }
+    else
+        print("\tLD VF,0x%02X", labels[index].args);
+}
+
 // Function call.
 static void fcall(const char* name)
 {
     match('(');
     // Built in functions will inline.
-    eql(name, "draw")  ? draw () :
-    eql(name, "clear") ? clear() : gfcall(name);
+    eql(name, "draw")   ? draw() :
+    eql(name, "sizeof") ? szof() :
+    eql(name, "clear")  ? clear() : gfcall(name);
     match(')');
     // Load return value.
     print("\tLD V%1X,VF", v);
@@ -763,17 +736,16 @@ static char* term()
     skip();
     return
     // Prefix modifiers.
-    now == '~'   ? inv  () :
-    now == '+'   ? pos  () :
-    now == '@'   ? size () :
-    now == '!'   ? notl () :
-    now == '-'   ? neg  () :
-    // Term is expression (enclosed in brackets).
-    now == '('   ? fexp () :
+    now == '~' ? inv  () :
+    now == '+' ? pos  () :
+    now == '!' ? notl () :
+    now == '-' ? neg  () :
     // Name load.
     isalpha(now) ? lname() :
     // Digit load.
-    isdigit(now) ? ldig () : peeks();
+    isdigit(now) ? ldig () :
+    // Term is expression (enclosed in brackets).
+    now == '(' ? fexp() : peeks();
     /* Returns the string in all cases, even if nothing was done. */
 }
 
@@ -796,8 +768,8 @@ static void operate(char* o, char* t)
     eql(o, "<=") ? glteqlto ()  :
     eql(o, "!=") ? gneqlto  ()  :
     eql(o, "==") ? geqlto   ()  :
-    eql(o, "||") ? gor      ()  :
-    eql(o, "&&") ? gand     ()  :
+    eql(o, "||") ? gmove    ()  :
+    eql(o, "&&") ? gmove    ()  :
     eql(o, "!" ) ? gnotl    ()  :
     eql(o, ">" ) ? ggt      ()  :
     eql(o, ">=") ? ggteqlto ()  : bomb("unknown operator '%s'", o);
@@ -813,7 +785,7 @@ static bool isname(const char* s)
 }
 
 // TA O TB O TA ...
-static void expression(char* overrider)
+static void expression(char* overrider, const bool shortable)
 {
     // Assume term is not an L-value.
     bool lvalue = false;
@@ -827,6 +799,7 @@ static void expression(char* overrider)
     // If the name is a label then it is not an L-value.
     if(find(ta) != -1)
         lvalue = false;
+    skip();
     while(!isendexpr())
     {
         incv();
@@ -842,22 +815,17 @@ static void expression(char* overrider)
         {
             if(lvalue == false)
                 bomb("expected lvalue to the left of operator '%s'", o);
-            expression(NULL);
+            expression(NULL, true);
         }
         // If the operator is a short circuit operator a new
         // expression is computed. Given this, the expression will turn
         // logical at the end of each subsequent expression.
-        else if(eql(o, "&&"))
+        else if(eql(o, "||") || eql(o, "&&"))
         {
             shorting = true;
-            gscand(b);
-            expression(NULL);
-        }
-        else if(eql(o, "||"))
-        {
-            shorting = true;
-            gscor(b);
-            expression(NULL);
+            print("\t%s V%1X,0x00", eql(o, "||") ? "SE" : "SNE", v - 1);
+            print("\tJP END%d", b);
+            expression(NULL, false);
         }
         char* tb = term();
         // If this is the second term of the expression, then there is
@@ -872,7 +840,12 @@ static void expression(char* overrider)
         ta = tb;
     }
     if(shorting)
-        gscend(b);
+    {
+        print("END%d:", b);
+        if(shortable)
+            print("\tSE V%1X,0x00", v),
+            print("\tLD V%1X,0x01", v);
+    }
     free(ta);
 }
 
@@ -882,6 +855,7 @@ static int garr()
 {
     match('{');
     int size = 0;
+    skip();
     while(now != '}')
     {
         char* d = dig();
@@ -963,7 +937,7 @@ static void dident(int* const idents)
         // Note equal signs are required when creating identifiers.
         // This will prevent uninitialized variables from cropping up.
         match('=');
-        expression(NULL);
+        expression(NULL, true);
         incv();
         *idents += 1;
         // If identifiers are separated by commas, keep going.
@@ -979,7 +953,7 @@ static void swhile()
     const int b = branch++;
     match('(');
     print("WHILE%d:", b);
-    expression(NULL);
+    expression(NULL, true);
     print("\tSNE V%1X,0x00", v);
     print("\tJP END%d", b);
     match(')');
@@ -993,7 +967,7 @@ static void sif()
 {
     const int b = branch++;
     match('(');
-    expression(NULL);
+    expression(NULL, true);
     print("\tSNE V%1X,0x00", v);
     print("\tJP ELSE%d", b);
     match(')');
@@ -1037,7 +1011,7 @@ static void dblock()
         eql(ta, "while")  ? (free(ta), swhile ()       ) :
         eql(ta, "if")     ? (free(ta), sif    ()       ) :
         eql(ta, "auto")   ? (free(ta), dident (&idents)) :
-        eql(ta, "return") ? (free(ta), sret   ()       ) : (expression(ta), match(';'));
+        eql(ta, "return") ? (free(ta), sret   ()       ) : (expression(ta, true), match(';'));
         /* An expression is computed as a last restort. */
         skip();
     }

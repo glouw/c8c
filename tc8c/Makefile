@@ -1,8 +1,8 @@
 ASM = ../asm
 BIN = ../bin
-CMP = valgrind --leak-check=full ../c8c
+CMP = ../c8c
 
-BINS = fun.bin
+BINS = fun.bin logical.bin
 HEXS = $(BINS:.bin=.hex)
 ASMS = $(BINS:.bin=.asm)
 
@@ -13,6 +13,13 @@ fun.bin: fun.hex
 fun.hex: fun.asm
 	$(ASM) $^ $@
 fun.asm: fun.c8
+	$(CMP) $^ $@
+
+logical.bin: logical.hex
+	$(BIN) $^ $@
+logical.hex: logical.asm
+	$(ASM) $^ $@
+logical.asm: logical.c8
 	$(CMP) $^ $@
 
 clean:

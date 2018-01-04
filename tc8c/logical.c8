@@ -1,0 +1,136 @@
+// Test:
+//   Logical operators.
+//
+// Date:
+//   January 3, 2018
+//
+// Synopsis:
+//   Tests logical operators && and ||. Forces logical operators
+//   to see if left to right association holds.
+//
+// Size estimate:
+//   2200 bytes
+
+number[] = {
+    { 0x00, 0x00, 0x20, 0x50, 0x50, 0x50, 0x20, 0x00 },
+    { 0x00, 0x00, 0x20, 0x60, 0x20, 0x20, 0x70, 0x00 },
+};
+
+// Tests logical OR.
+tor(y)
+{
+    auto x = 0, dx = 8;
+    auto a = (0 || 0 || 0 || 0) == 0;
+    auto b = (0 || 0 || 0 || 1) == 1;
+    auto c = (0 || 0 || 2 || 0) == 1;
+    auto d = (0 || 3 || 0 || 0) == 1;
+    auto e = (4 || 0 || 0 || 0) == 1;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    return a && b && c && d && e;
+}
+
+// Tests logical OR with forced expressions.
+torf(y)
+{
+    auto x = 0, dx = 8;
+    auto a = ((0 || 0) || (0 || 0)) == 0;
+    auto b = ((0 || 0) || (0 || 1)) == 1;
+    auto c = ((0 || 0) || (2 || 0)) == 1;
+    auto d = ((0 || 3) || (0 || 0)) == 1;
+    auto e = ((4 || 0) || (0 || 0)) == 1;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    return a && b && c && d && e;
+}
+
+// Tests and logical AND.
+tand(y)
+{
+    auto x = 0, dx = 8;
+    auto a = (5 && 9 && 4 && 1) == 1;
+    auto b = (0 && 0 && 0 && 1) == 0;
+    auto c = (0 && 0 && 2 && 0) == 0;
+    auto d = (0 && 3 && 0 && 0) == 0;
+    auto e = (4 && 0 && 0 && 0) == 0;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    return a && b && c && d && e;
+}
+
+// Tests logical AND with forced expressions.
+tandf(y)
+{
+    auto x = 0, dx = 8;
+    auto a = ((5 && 9) && (4 && 1)) == 1;
+    auto b = ((0 && 0) && (0 && 1)) == 0;
+    auto c = ((0 && 0) && (2 && 0)) == 0;
+    auto d = ((0 && 3) && (0 && 0)) == 0;
+    auto e = ((4 && 0) && (0 && 0)) == 0;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    return a && b && c && d && e;
+}
+
+delay(t)
+{
+    while(t)
+    {
+        t -= 1;
+    }
+}
+
+flash(x, y, value)
+{
+    while(1)
+    {
+        draw(x, y, number[value]);
+        delay(40);
+    }
+}
+
+place(x, y, value)
+{
+    draw(x, y, number[value]);
+    while(1)
+    {
+    }
+}
+
+main()
+{
+    auto dy = sizeof(number);
+    auto y = -dy;
+    auto pass = 1;
+    pass &= tor  (y += dy);
+    pass &= torf (y += dy);
+    pass &= tand (y += dy);
+    pass &= tandf(y += dy);
+    clear();
+    // Roughly middle of screen.
+    auto xmid = 32 - 4;
+    auto ymid = 16 - 4;
+    // If the test passed, 1 will be drawn to
+    // the middle of the screen. Otherwise,
+    // 0 will flash on screen.
+    if(pass)
+    {
+        place(xmid, ymid, pass);
+    }
+    else
+    {
+        flash(xmid, ymid, pass);
+    }
+}
