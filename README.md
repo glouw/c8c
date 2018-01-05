@@ -44,6 +44,8 @@ To run a compiled binary, invoke the virtual machine:
 
     ./emu examples/maze.bin
 
+Hit the END key to exit.
+
 To build your own c8 code, piecewise invoke the toolchain:
 
     ./c8c main.c8 main.asm
