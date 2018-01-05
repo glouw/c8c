@@ -1,0 +1,99 @@
+number[] = {
+    { 0x00, 0x00, 0x20, 0x50, 0x50, 0x50, 0x20, 0x00 },
+    { 0x00, 0x00, 0x20, 0x60, 0x20, 0x20, 0x70, 0x00 },
+};
+
+// Tests the not operator
+tnot(y)
+{
+    auto x = 0, dx = 8;
+    auto a = (!0) == 1;
+    auto b = (!1) == 0;
+    auto c = (!9) == 0;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    return a && b && c;
+}
+
+// Tests equality and non-equality.
+tequal(y)
+{
+    auto x = 0, dx = 8;
+    auto a = (7 == 7) == 1;
+    auto b = (7 != 7) == 0;
+    auto c = (1 == 1) == 1;
+    auto d = (0 == 0) == 1;
+    auto e = (0 == 1) == 0;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    return a && b && c && d && e;
+}
+
+// Tests comparison.
+tcompare(y)
+{
+    auto x = 0, dx = 8;
+    auto a = (0 <  0) == 0;
+    auto b = (0 <= 0) == 1;
+    auto c = (0 >  0) == 0;
+    auto d = (0 >= 0) == 1;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    draw(x, y, number[d]); x += dx;
+    return a && b && c && d;
+}
+
+delay(t)
+{
+    while(t)
+    {
+        t -= 1;
+    }
+}
+
+flash(x, y, value)
+{
+    while(1)
+    {
+        draw(x, y, number[value]);
+        delay(40);
+    }
+}
+
+place(x, y, value)
+{
+    draw(x, y, number[value]);
+    while(1)
+    {
+    }
+}
+
+main()
+{
+    auto dy = sizeof(number);
+    auto y = -dy;
+    auto pass = 1;
+    pass &= tequal  (y += dy);
+    pass &= tcompare(y += dy);
+    pass &= tnot    (y += dy);
+    clear();
+    // Roughly middle of screen.
+    auto xmid = 32 - 4;
+    auto ymid = 16 - 4;
+    // If the test passed, 1 will be drawn to
+    // the middle of the screen. Otherwise,
+    // 0 will flash on screen.
+    if(pass)
+    {
+        place(xmid, ymid, pass);
+    }
+    else
+    {
+        flash(xmid, ymid, pass);
+    }
+}

@@ -2,38 +2,53 @@ ASM = ../asm
 BIN = ../bin
 CMP = ../c8c
 
-BINS = logical.bin mul.bin maze.bin tty.bin
+BINS = logical0.bin logical1.bin assignment.bin
+BINS+= sizeof.bin branching.bin while.bin
 HEXS = $(BINS:.bin=.hex)
 ASMS = $(BINS:.bin=.asm)
 
 all: $(BINS)
 
-tty.bin: tty.hex
+while.bin: while.hex
 	$(BIN) $^ $@
-tty.hex: tty.asm
+while.hex: while.asm
 	$(ASM) $^ $@
-tty.asm: tty.c8
+while.asm: while.c8
 	$(CMP) $^ $@
 
-maze.bin: maze.hex
+branching.bin: branching.hex
 	$(BIN) $^ $@
-maze.hex: maze.asm
+branching.hex: branching.asm
 	$(ASM) $^ $@
-maze.asm: maze.c8
+branching.asm: branching.c8
 	$(CMP) $^ $@
 
-logical.bin: logical.hex
+sizeof.bin: sizeof.hex
 	$(BIN) $^ $@
-logical.hex: logical.asm
+sizeof.hex: sizeof.asm
 	$(ASM) $^ $@
-logical.asm: logical.c8
+sizeof.asm: sizeof.c8
 	$(CMP) $^ $@
 
-mul.bin: mul.hex
+assignment.bin: assignment.hex
 	$(BIN) $^ $@
-mul.hex: mul.asm
+assignment.hex: assignment.asm
 	$(ASM) $^ $@
-mul.asm: mul.c8
+assignment.asm: assignment.c8
+	$(CMP) $^ $@
+
+logical0.bin: logical0.hex
+	$(BIN) $^ $@
+logical0.hex: logical0.asm
+	$(ASM) $^ $@
+logical0.asm: logical0.c8
+	$(CMP) $^ $@
+
+logical1.bin: logical1.hex
+	$(BIN) $^ $@
+logical1.hex: logical1.asm
+	$(ASM) $^ $@
+logical1.asm: logical1.c8
 	$(CMP) $^ $@
 
 clean:

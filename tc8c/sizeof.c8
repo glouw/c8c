@@ -1,0 +1,63 @@
+number[] = {
+    { 0x00, 0x00, 0x20, 0x50, 0x50, 0x50, 0x20, 0x00 },
+    { 0x00, 0x00, 0x20, 0x60, 0x20, 0x20, 0x70, 0x00 },
+};
+
+tsizeof(y)
+{
+    auto x = 0, dx = 8;
+    auto t = 0;
+    auto a = (sizeof(number)) == 8;
+    auto b = (sizeof(number[])) == 2;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    return a && b;
+}
+
+delay(t)
+{
+    while(t)
+    {
+        t -= 1;
+    }
+}
+
+flash(x, y, value)
+{
+    while(1)
+    {
+        draw(x, y, number[value]);
+        delay(40);
+    }
+}
+
+place(x, y, value)
+{
+    draw(x, y, number[value]);
+    while(1)
+    {
+    }
+}
+
+main()
+{
+    auto dy = sizeof(number);
+    auto y = -dy;
+    auto pass = 1;
+    pass &= tsizeof(y += dy);
+    clear();
+    // Roughly middle of screen.
+    auto xmid = 32 - 4;
+    auto ymid = 16 - 4;
+    // If the test passed, 1 will be drawn to
+    // the middle of the screen. Otherwise,
+    // 0 will flash on screen.
+    if(pass)
+    {
+        place(xmid, ymid, pass);
+    }
+    else
+    {
+        flash(xmid, ymid, pass);
+    }
+}

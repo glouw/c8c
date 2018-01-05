@@ -1,6 +1,6 @@
 # c8c
 
-c8c aims to be a relatively small typeless c-like programming language for the CHIP-8 platform:
+c8c aims to be a small typeless programming language for the CHIP-8 virtual machine:
 
     r = { 0x80, 0x40, 0x20, 0x10 };
     l = { 0x20, 0x40, 0x80, 0x10 };
@@ -33,18 +33,23 @@ c8c aims to be a relatively small typeless c-like programming language for the C
 
 ![Screenshot](scrots/2018-01-04-140651_512x256_scrot.png)
 
-First build the tool chain:
+Just run:
 
     make
 
-Note that SDL2 is required.
+This will build the CHIP-8 virtual machine, binner, assembler, and compiler.
+The compiler will then build all the unit tests (tc8c) and example code pieces (examples).
+
+To run a compiled binary, invoke the virtual machine:
+
+    ./emu examples/maze.bin
 
 To build your own c8 code, piecewise invoke the toolchain:
 
-    c8c main.c8 main.asm
+    ./c8c main.c8 main.asm
 
-    asm main.asm main.hex
+    ./asm main.asm main.hex
 
-    bin main.hex main.bin
+    ./bin main.hex main.bin
 
-    emu main.bin
+    ./emu main.bin

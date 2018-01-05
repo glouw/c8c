@@ -433,32 +433,34 @@ static void geqlto()
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Generate less than (<).
-static void glt()
+// Generate less than or equal to (<=).
+static void glteqlto()
 {
     print("\tSUBN V%1X,V%1X", v - 1, v);
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Generate greater than (>).
-static void ggt()
+// Generate greater than or equal to (>=).
+static void ggteqlto()
 {
     print("\tSUB V%1X,V%1X", v - 1, v);
     print("\tLD V%1X,VF", v - 1);
 }
 
-// Generate less than or equal to (<=).
-static void glteqlto()
+// Generate less than (<).
+static void glt()
 {
-    ggt();
-    print("\tXOR V%1X,0x01", v - 1);
+    ggteqlto();
+    print("\tLD VF,0x01");
+    print("\tXOR V%1X,VF", v - 1);
 }
 
-// Generate greater than or equal to (>=).
-static void ggteqlto()
+// Generate greater than (>).
+static void ggt()
 {
-    glt();
-    print("\tXOR V%1X,0x01", v - 1);
+    glteqlto();
+    print("\tLD VF,0x01");
+    print("\tXOR V%1X,VF", v - 1);
 }
 
 // Generate copy.
@@ -554,6 +556,8 @@ static char* notl()
 static char* pos()
 {
     match('+');
+    if(now == '+')
+        bomb("operator '++' not supported");
     return term();
 }
 
@@ -570,6 +574,8 @@ static char* inv()
 static char* neg()
 {
     match('-');
+    if(now == '-')
+        bomb("operator '--' not supported");
     char* ta = term();
     gneg();
     return ta;
@@ -911,8 +917,10 @@ static void expression(char* overrider, const bool shortable)
     {
         print("END%d:", b);
         if(shortable)
-            print("\tSE V%1X,0x00", v),
+        {
+            print("\tSE V%1X,0x00", v);
             print("\tLD V%1X,0x01", v);
+        }
     }
     free(ta);
 }

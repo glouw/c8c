@@ -1,0 +1,113 @@
+number[] = {
+    { 0x00, 0x00, 0x20, 0x50, 0x50, 0x50, 0x20, 0x00 },
+    { 0x00, 0x00, 0x20, 0x60, 0x20, 0x20, 0x70, 0x00 },
+};
+
+tbranch(y)
+{
+    auto x = 0, dx = 8;
+    auto t = 0;
+    if(0 == 4) {
+        t = 4;
+    } else if(0 == 3) {
+        t = 3;
+    } else if(0 == 2) {
+        t = 2;
+    } else if(0 == 1) {
+        t = 1;
+    } else if(0 == 0) {
+        t = 0xAA;
+    } else {
+        t = 0xFF;
+    }
+    auto a = t == 0xAA;
+    draw(x, y, number[a]); x += dx;
+    // Nested testing.
+    if(0 == 4) {
+        t = 4;
+    } else if(0 == 3) {
+        t = 3;
+    } else if(0 == 2) {
+        t = 2;
+    } else if(0 == 1) {
+        t = 1;
+    } else if(0 == 0) {
+        auto z = 3;
+        if(z == 3) {
+            if(z == 3) {
+                if(z != 3) {
+                } else if(z == 4) {
+                } else {
+                    t = 0xBB;
+                }
+            }
+        }
+    } else {
+        t = 0xFF;
+    }
+    auto b = t == 0xBB;
+    draw(x, y, number[a]); x += dx;
+    // Reaching the else.
+    if(0 == 4) {
+        putchar(32, 16, 255);
+    } else if(0 == 3) {
+        putchar(32, 16, 255);
+    } else if(0 == 2) {
+        putchar(32, 16, 255);
+    } else if(0 == 1) {
+        putchar(32, 16, 255);
+    } else {
+        t = 0xFF;
+    }
+    auto c = t == 0xFF;
+    draw(x, y, number[c]); x += dx;
+    return a && b && c;
+}
+
+delay(t)
+{
+    while(t)
+    {
+        t -= 1;
+    }
+}
+
+flash(x, y, value)
+{
+    while(1)
+    {
+        draw(x, y, number[value]);
+        delay(40);
+    }
+}
+
+place(x, y, value)
+{
+    draw(x, y, number[value]);
+    while(1)
+    {
+    }
+}
+
+main()
+{
+    auto dy = sizeof(number);
+    auto y = -dy;
+    auto pass = 1;
+    pass &= tbranch(y += dy);
+    clear();
+    // Roughly middle of screen.
+    auto xmid = 32 - 4;
+    auto ymid = 16 - 4;
+    // If the test passed, 1 will be drawn to
+    // the middle of the screen. Otherwise,
+    // 0 will flash on screen.
+    if(pass)
+    {
+        place(xmid, ymid, pass);
+    }
+    else
+    {
+        flash(xmid, ymid, pass);
+    }
+}

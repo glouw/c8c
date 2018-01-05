@@ -1,17 +1,3 @@
-// Test:
-//   Logical operators.
-//
-// Date:
-//   January 3, 2018
-//
-// Synopsis:
-//   Tests logical operators && and ||. Forces logical operators
-//   to see if left to right association holds.
-//   At the end of the program, upon failure, a flashing zero is drawn.
-//
-// Size estimate:
-//   2200 bytes
-
 number[] = {
     { 0x00, 0x00, 0x20, 0x50, 0x50, 0x50, 0x20, 0x00 },
     { 0x00, 0x00, 0x20, 0x60, 0x20, 0x20, 0x70, 0x00 },
