@@ -1,4 +1,4 @@
-CC = gcc
+CC = gcc -std=c99
 
 CFLAGS = -Wshadow -Wall -Wpedantic -Wextra
 CFLAGS+= -Ofast -march=native

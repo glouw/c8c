@@ -3,10 +3,25 @@ BIN = ../bin
 CMP = ../c8c
 
 BINS = mul.bin maze.bin tty.bin
+BINS+= collision.bin invaders.bin
 HEXS = $(BINS:.bin=.hex)
 ASMS = $(BINS:.bin=.asm)
 
 all: $(BINS)
+
+collision.bin: collision.hex
+	$(BIN) $^ $@
+collision.hex: collision.asm
+	$(ASM) $^ $@
+collision.asm: collision.c8
+	$(CMP) $^ $@
+
+invaders.bin: invaders.hex
+	$(BIN) $^ $@
+invaders.hex: invaders.asm
+	$(ASM) $^ $@
+invaders.asm: invaders.c8
+	$(CMP) $^ $@
 
 tty.bin: tty.hex
 	$(BIN) $^ $@

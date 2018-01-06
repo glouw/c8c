@@ -1,0 +1,102 @@
+alien = { 0x18, 0x3C, 0x7E, 0xDB, 0xFF, 0x24, 0x5A, 0xA5, };
+
+gun = { 0x10, 0x38, };
+
+bullet = { 0x10 };
+
+move_gun(x)
+{
+    auto dir = getchar();
+    auto left = 7;
+    auto right = 9;
+    if(dir == left)
+    {
+        return x -= 1;
+    }
+    else if(dir == right)
+    {
+        return x += 1;
+    }
+    else
+    {
+        return x += 0;
+    }
+}
+
+shoot_gun()
+{
+    return getchar() == 5;
+}
+
+draw_aliens()
+{
+    auto start = 3;
+    auto x = 50;
+    while(x)
+    {
+        draw(start + x, 0, alien);
+        x -= 10;
+    }
+    draw(start, 0, alien);
+}
+
+draw_gun(x, ymax, init)
+{
+    auto y = ymax - sizeof(gun);
+    if(init)
+    {
+        draw(x, y, gun);
+    }
+    draw(x, y, gun);
+    x = move_gun(x);
+    draw(x, y, gun);
+    return x;
+}
+
+draw_bullet(x, y, tip)
+{
+    if(y == tip)
+    {
+        draw(x, y, bullet);
+    }
+    draw(x, y, bullet);
+    if(draw(x, y - 1, bullet))
+    {
+        return 0;
+    }
+    else
+    {
+        return y -= 1;
+    }
+}
+
+main()
+{
+    auto x = 0;
+    auto ymax = 32;
+    auto tip = ymax - sizeof(gun);
+    auto bx = 0;
+    auto by = 0;
+    auto shooting = 0;
+    auto init = 1;
+    draw_aliens();
+    while(1)
+    {
+        x = draw_gun(x, ymax, init);
+        if(shoot_gun())
+        {
+            bx = x;
+            by = tip;
+            shooting = 1;
+        }
+        if(by == 0)
+        {
+            shooting = 0;
+        }
+        if(shooting)
+        {
+            by = draw_bullet(bx, by, tip);
+        }
+        init = 0;
+    }
+}

@@ -1,0 +1,31 @@
+dot = { 0x80 };
+
+main()
+{
+    auto x = 3, xm = 64;
+    auto y = 3, ym = 32;
+    auto dir = 1;
+    // Directional keyboard keys.
+    auto A = 7, D = 9, W = 5, S = 8;
+    while(1)
+    {
+        // Get move direction.
+        auto a = getchar();
+        if(a == A) { dir = 0; } else
+        if(a == D) { dir = 1; } else
+        if(a == W) { dir = 2; } else
+        if(a == S) { dir = 3; }
+        // Apply move direction.
+        if(dir == 0) { x -= 1;} else
+        if(dir == 1) { x += 1;} else
+        if(dir == 2) { y -= 1;} else
+        if(dir == 3) { y += 1;}
+        // Out of bounds fix.
+        if(x == xm) { x = 0 ;     } else
+        if(x == -1) { x = xm - 1; } else
+        if(y == -1) { y = ym - 1; } else
+        if(y == ym) { y = 0 ;     };
+        // Draw. If collision, clear the screen.
+        if(draw(x, y, dot)) { clear(); }
+    }
+}

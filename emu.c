@@ -212,7 +212,7 @@ static void discharge()
     for(int j = 0; j < VROWS; j++)
     for(int i = 0; i < VCOLS; i++)
         if(!charging(j, i))
-            charges[j][i] *= 0.97;
+            charges[j][i] *= 0.997;
 }
 
 void dump()
@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
         SDL_PumpEvents();
         charge();
         cycle();
-        if(cycles % 10 == 0)
+        if(cycles % 15 == 0)
             output();
         discharge();
     }
