@@ -827,26 +827,27 @@ static char* term()
 // Operators work on chained variables from V0 to VD (inclusive).
 static void operate(char* o, char* t)
 {
-    eql(o, "=" ) ? geql     (t) :
-    eql(o, "+=") ? gaddeql  (t) :
-    eql(o, "-=") ? gsubeql  (t) :
-    eql(o, "^=") ? gxoreql  (t) :
-    eql(o, "&=") ? gandeql  (t) :
-    eql(o, "|=") ? goreql   (t) :
-    eql(o, "+" ) ? gadd     ()  :
-    eql(o, "-" ) ? gsub     ()  :
-    eql(o, "&" ) ? gand     ()  :
-    eql(o, "^" ) ? gxor     ()  :
-    eql(o, "|" ) ? gor      ()  :
-    eql(o, "<" ) ? glt      ()  :
-    eql(o, "<=") ? glteqlto ()  :
-    eql(o, "!=") ? gneqlto  ()  :
-    eql(o, "==") ? geqlto   ()  :
-    eql(o, "||") ? gmove    ()  :
-    eql(o, "&&") ? gmove    ()  :
-    eql(o, "!" ) ? gnotl    ()  :
-    eql(o, ">" ) ? ggt      ()  :
-    eql(o, ">=") ? ggteqlto ()  : bomb("unknown operator '%s'", o);
+    eql(o, "=" ) ? geql     (t) : // Assignment.
+    eql(o, "+=") ? gaddeql  (t) : // Assignment.
+    eql(o, "-=") ? gsubeql  (t) : // Assignment.
+    eql(o, "^=") ? gxoreql  (t) : // Assignment.
+    eql(o, "&=") ? gandeql  (t) : // Assignment.
+    eql(o, "|=") ? goreql   (t) : // Assignment.
+    eql(o, "+" ) ? gadd     ()  : // Chain.
+    eql(o, "-" ) ? gsub     ()  : // Chain.
+    eql(o, "&" ) ? gand     ()  : // Chain.
+    eql(o, "^" ) ? gxor     ()  : // Chain.
+    eql(o, "|" ) ? gor      ()  : // Chain.
+    eql(o, "<" ) ? glt      ()  : // Comparison.
+    eql(o, "<=") ? glteqlto ()  : // Comparison.
+    eql(o, ">=") ? ggteqlto ()  : // Comparison.
+    eql(o, ">" ) ? ggt      ()  : // Comparison.
+    eql(o, "!=") ? gneqlto  ()  : // Comparison.
+    eql(o, "==") ? geqlto   ()  : // Comparison.
+    eql(o, "||") ? gmove    ()  : // Logical.
+    eql(o, "&&") ? gmove    ()  : // Logical.
+    eql(o, "!" ) ? gnotl    ()  : // Unary.
+        bomb("unknown operator '%s'", o);
     /* Exits if operator is not found. */
 }
 
@@ -891,10 +892,21 @@ static void expression(char* overrider, const bool shortable)
                 bomb("expected lvalue to the left of operator '%s'", o);
             expression(NULL, true);
         }
+        // If the operator is a comparison operator then a new expression is computed.
+        else if(
+           eql(o, "<" )
+        || eql(o, "<=")
+        || eql(o, ">=")
+        || eql(o, ">" )
+        || eql(o, "!=")
+        || eql(o, "=="))
+            expression(NULL, true);
         // If the operator is a short circuit operator a new
         // expression is computed. Given this, the expression will turn
         // logical at the end of each subsequent expression.
-        else if(eql(o, "||") || eql(o, "&&"))
+        else if(
+           eql(o, "||")
+        || eql(o, "&&"))
         {
             shorting = true;
             print("\t%s V%1X,0x00", eql(o, "||") ? "SE" : "SNE", v - 1);

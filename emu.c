@@ -231,14 +231,15 @@ int main(int argc, char* argv[])
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(512, 256, 0, &window, &renderer);
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+    SDL_SetWindowTitle(window, "Emu-1.0");
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     key = SDL_GetKeyboardState(NULL);
     load(argv[1]);
     srand(time(0));
-    for(int cycles = 0; !key[SDL_SCANCODE_END]; cycles++)
+    for(int cycles = 0; !key[SDL_SCANCODE_END] && !key[SDL_SCANCODE_ESCAPE]; cycles++)
     {
-        SDL_PumpEvents();
+        SDL_PumpEvents(); // Cannot poll an SDL_Event -- Too slow!
         charge();
         cycle();
         if(cycles % 15 == 0)

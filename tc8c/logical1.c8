@@ -7,9 +7,9 @@ number[] = {
 tnot(y)
 {
     auto x = 0, dx = 8;
-    auto a = (!0) == 1;
-    auto b = (!1) == 0;
-    auto c = (!9) == 0;
+    auto a = !0 == 1;
+    auto b = !1 == 0;
+    auto c = !9 == 0;
     draw(x, y, number[a]); x += dx;
     draw(x, y, number[b]); x += dx;
     draw(x, y, number[c]); x += dx;
@@ -31,6 +31,34 @@ tequal(y)
     draw(x, y, number[d]); x += dx;
     draw(x, y, number[e]); x += dx;
     return a && b && c && d && e;
+}
+
+// Tests long equality.
+tlequal(y)
+{
+    auto x = 0, dx = 8;
+    auto a = 4 + 3 + 2 == 4 + 3 + 2;
+    auto b = 4 + 3 + 1 != 4 + 3 + 2;
+    auto c = 4 + 3 + 1 <= 4 + 3 + 2;
+    draw(x, y, number[a]); x += dx;
+    draw(x, y, number[b]); x += dx;
+    draw(x, y, number[c]); x += dx;
+    return a && b && c;
+}
+tlequal2(y)
+{
+    auto x = 0, dx = 8;
+    auto d = 4 + 3 + 3 >= 4 + 3 + 2;
+    auto e = 4 + 3 + 2 <= 4 + 3 + 2;
+    auto f = 4 + 3 + 2 >= 4 + 3 + 2;
+    auto g = 4 + 3     <  4 + 3 + 2;
+    auto h = 4 + 3 + 2 >  4 + 3;
+    draw(x, y, number[d]); x += dx;
+    draw(x, y, number[e]); x += dx;
+    draw(x, y, number[f]); x += dx;
+    draw(x, y, number[g]); x += dx;
+    draw(x, y, number[h]); x += dx;
+    return d && e && f && g && h;
 }
 
 // Tests comparison.
@@ -81,6 +109,11 @@ main()
     pass &= tequal  (y += dy);
     pass &= tcompare(y += dy);
     pass &= tnot    (y += dy);
+    pass &= tlequal (y += dy);
+    clear();
+    y = -dy;
+    pass &= tlequal (y += dy);
+    pass &= tlequal2(y += dy);
     clear();
     // Roughly middle of screen.
     auto xmid = 32 - 4;

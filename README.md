@@ -33,6 +33,26 @@ c8c aims to be a small typeless programming language for the CHIP-8 virtual mach
 
 ![Screenshot](scrots/2018-01-04-140651_512x256_scrot.png)
 
+    mul(a, b)
+    {
+        if(b == 0)
+        {
+            return 0;
+        }
+        return a + mul(a, b - 1);
+    }
+
+    main()
+    {
+        putchar(24, 13, mul(9, 9));
+        while(1)
+        {
+            // Never leave main.
+        }
+    }
+
+![Screenshot](scrots/2018-01-31-130004_512x256_scrot.png)
+
 Just run:
 
     make
