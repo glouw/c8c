@@ -44,6 +44,9 @@ static int now;
 // The line number.
 static int nline = 1;
 
+// Line max length.
+static const int lmax = 512;
+
 // Input file (c8).
 static FILE* fi;
 
@@ -89,6 +92,8 @@ static void bomb(const char* msg, ...)
 static void buffer()
 {
     static int reads;
+    if(reads == lmax - 1)
+        bomb("line too long");
     line[reads++] = now == '\n' ? '\0' : now;
     if(now == '\n')
     {
@@ -194,7 +199,7 @@ static void init(char* argv[])
         fprintf(stderr, "error: %s cannot be made\n", assem);
         exit(1);
     }
-    line = (char*) malloc(512 * sizeof(char));
+    line = (char*) malloc(lmax * sizeof(char));
     next();
     skip();
     atexit(shutdown);
@@ -244,11 +249,14 @@ static char* name()
     // First char must be alpha or underscore
     if(!(now == '_' || isalpha(now)))
         bomb("names must start with underscores or alpha chars");
-    char* name = (char*) malloc(128 * sizeof(char));
+    const int size = 128;
+    char* name = (char*) malloc(size * sizeof(char));
     int i = 0;
     // But name can contain alpha an numeric chars.
     while(isalnum(now) || now == '_')
     {
+        if(i == size - 1)
+            bomb("name too long");
         name[i++] = now;
         next();
     }
@@ -262,10 +270,13 @@ static char* dig()
     skip();
     if(!isdigit(now))
         bomb("expected value");
-    char* d = (char*) malloc(128 * sizeof(char));
+    const int size = 128;
+    char* d = (char*) malloc(size * sizeof(char));
     int i = 0;
     while(isdigit(now) || isxdigit(now) || tolower(now) == 'x')
     {
+        if(i == size - 1)
+            bomb("digit too long");
         d[i++] = now;
         next();
     }
@@ -277,10 +288,13 @@ static char* dig()
 static char* op()
 {
     skip();
-    char* o = (char*) malloc(128 * sizeof(char));
+    const int size = 128;
+    char* o = (char*) malloc(size * sizeof(char));
     int i = 0;
     while(!isendop())
     {
+        if(i == size - 1)
+            bomb("operator too long");
         o[i++] = now;
         next();
     }
