@@ -1,4 +1,4 @@
-# c8c
+![Screenshot](scrots/logo.png)
 
 c8c aims to be a small typeless programming language for the CHIP-8 virtual machine:
 
