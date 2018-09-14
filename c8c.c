@@ -542,15 +542,13 @@ static void gfpush()
 {
     print("\tLD F,VE");
     print("\tLD [I],VE");
-    print("\tLD VF,0x03");
-    print("\tADD VE,VF");
+    print("\tADD VE,0x03");
 }
 
 // Generate frame pop.
 static void gfpop()
 {
-    print("\tLD VF,0x03");
-    print("\tSUB VE,VF");
+    print("\tSUB VE,0x03");
     print("\tLD VF,V%1X", v);
     print("\tLD F,VE");
     print("\tLD VE,[I]");
